@@ -5,12 +5,122 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+model Location {
+  id          Int          @id @default(autoincrement())
+  name        String       
+  address     String?
+  profiles    Profile[]
+  shifts      Shift[]
+  requirements StaffingRequirement[]
+  createdAt   DateTime     @default(now())
+}
+
+model JobPosition {
+  id           Int          @id @default(autoincrement())
+  name         String       
+  isManagerial Boolean      @default(false)
+  profiles     Profile[]
+  requirements StaffingRequirement[]
+}
+
+model Profile {
+  id                   String        @id @default(uuid())
+  email                String        @unique  
+  password             String                 
+  fullName             String
+  role                 UserRole      @default(EMPLOYEE)
+  targetHoursPerWeek   Decimal       @default(40)
+  
+  locationId           Int?
+  location             Location?     @relation(fields: [locationId], references: [id])
+  
+  positionId           Int?
+  position             JobPosition?  @relation(fields: [positionId], references: [id])
+  
+  availabilities       Availability[]
+  assignedShifts       Shift[]
+  
+  createdAt            DateTime      @default(now())
+}
+
+model ShiftType {
+  id          Int          @id @default(autoincrement())
+  name        String      
+  startTime   String     
+  endTime     String       
+  colorCode   String       @default("#3b82f6")
+  shifts      Shift[]
+  requirements StaffingRequirement[]
+}
+
+model StaffingRequirement {
+  id          Int        @id @default(autoincrement())
+  dayOfWeek   Int       
+  minEmployees Int       @default(1)
+  
+  locationId  Int
+  location    Location   @relation(fields: [locationId], references: [id])
+  
+  shiftTypeId Int
+  shiftType   ShiftType  @relation(fields: [shiftTypeId], references: [id])
+  
+  positionId  Int
+  position    JobPosition @relation(fields: [positionId], references: [id])
+}
+
+model Shift {
+  id              String      @id @default(uuid())
+  startDatetime   DateTime
+  endDatetime     DateTime
+  status          ShiftStatus @default(DRAFT)
+
+  locationId      Int
+  location        Location    @relation(fields: [locationId], references: [id])
+
+  shiftTypeId     Int
+  shiftType       ShiftType   @relation(fields: [shiftTypeId], references: [id])
+
+  assignedUserId  String?
+  assignedUser    Profile?    @relation(fields: [assignedUserId], references: [id])
+
+  createdAt       DateTime    @default(now())
+}
+
+model Availability {
+  id            String           @id @default(uuid())
+  startDatetime DateTime
+  endDatetime   DateTime
+  type          AvailabilityType @default(AVAILABLE)
+
+  userId        String
+  user          Profile          @relation(fields: [userId], references: [id])
+
+  createdAt     DateTime         @default(now())
+}
+
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum ShiftStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum AvailabilityType {
+  AVAILABLE
+  UNAVAILABLE
+  PREFERRED
 }

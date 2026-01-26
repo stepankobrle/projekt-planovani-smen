@@ -1,0 +1,10 @@
+{
+     "editor.defaultFormatter": "esbenp.prettier-vscode",
+ "[scss]": {
+ "editor.formatOnSave": true,
+ },
+ "prettier.useTabs": true,
+ "prettier.bracketSameLine": true,
+ "prettier.singleQuote": false,
+ "prettier.bracketSpacing": true,
+}
