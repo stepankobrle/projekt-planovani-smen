@@ -35,20 +35,22 @@ model JobPosition {
 model Profile {
   id                   String        @id @default(uuid())
   email                String        @unique  
-  password             String                 
+  password             String?                 
   fullName             String
   role                 UserRole      @default(EMPLOYEE)
   targetHoursPerWeek   Decimal       @default(40)
   
+  invitationToken    String?      @unique  
+  invitationExpires DateTime?
+  isActivated        Boolean      @default(false)
+
   locationId           Int?
   location             Location?     @relation(fields: [locationId], references: [id])
-  
+
   positionId           Int?
   position             JobPosition?  @relation(fields: [positionId], references: [id])
-  
   availabilities       Availability[]
   assignedShifts       Shift[]
-  
   createdAt            DateTime      @default(now())
 }
 
