@@ -24,7 +24,6 @@ export class AuthService {
       where: { email },
     });
 
-    // 2. Porovnáme heslo (bcrypt automaticky pozná hash)
     if (user && (await bcrypt.compare(password, user.password))) {
       const payload = { sub: user.id, email: user.email, role: user.role };
 
@@ -62,13 +61,12 @@ export class AuthService {
           'Uživatel s tímto e-mailem je již aktivní.',
         );
       }
-      // AKTUALIZACE: Přidán i expires čas
       await this.prisma.profile.update({
         where: { email: dto.email },
         data: {
           fullName: dto.fullName,
           role: dto.role,
-          targetHoursPerWeek: dto.targetHours,
+          targetHoursPerMonth: dto.targetHours,
           invitationToken: token,
           invitationExpires: expires,
           locationId: dto.locationId || null,
@@ -81,7 +79,7 @@ export class AuthService {
           email: dto.email,
           fullName: dto.fullName,
           role: dto.role,
-          targetHoursPerWeek: dto.targetHours,
+          targetHoursPerMonth: dto.targetHours,
           invitationToken: token,
           invitationExpires: expires,
           isActivated: false,
@@ -93,7 +91,6 @@ export class AuthService {
 
     const invitationLink = `http://localhost:3000/set-password?token=${token}`;
 
-    // SKUTEČNÉ ODESLÁNÍ E-MAILU
     await this.mailerService.sendMail({
       to: dto.email,
       subject: 'Pozvánka do systému plánování směn',
