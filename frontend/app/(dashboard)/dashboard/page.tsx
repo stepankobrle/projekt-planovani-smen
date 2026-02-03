@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import ProtectedRoute from "../components/ProtectedRoute";
+import ProtectedRoute from "@/app/components/ProtectedRoute";
 
 export default function DashboardPage() {
 	const router = useRouter();
