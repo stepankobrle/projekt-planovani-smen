@@ -104,6 +104,7 @@ model Shift {
   startDatetime  DateTime
   endDatetime    DateTime
   status         ShiftStatus @default(DRAFT)
+  availabilities  Availability[]
 
   locationId     Int
   location       Location    @relation(fields: [locationId], references: [id])
@@ -124,6 +125,9 @@ model Availability {
   startDatetime DateTime         // Kdy preference začíná (pro flexibilitu v rámci dne)
   endDatetime   DateTime         // Kdy preference končí
   type          AvailabilityType @default(AVAILABLE)
+
+  shiftId       String?          
+  shift         Shift?           @relation(fields: [shiftId], references: [id])
 
   // Pokud si vybírají "chci ranní", propojí se to zde:
   shiftTypeId   Int?             

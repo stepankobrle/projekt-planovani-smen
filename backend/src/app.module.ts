@@ -5,6 +5,9 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './prisma.service';
 import { ConfigModule } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { ShiftsModule } from './shifts/shifts.module';
+import { AvailabilityModule } from './availability/availability.module';
+import { ScheduleModule } from './schedule/schedule.module';
 
 @Global()
 @Module({
@@ -24,6 +27,9 @@ import { MailerModule } from '@nestjs-modules/mailer';
         from: '"Plánování směn" <no-reply@mojeapp.cz>',
       },
     }),
+    ShiftsModule,
+    AvailabilityModule,
+    ScheduleModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
