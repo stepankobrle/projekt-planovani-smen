@@ -14,92 +14,124 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// --- GLOBÁLNÍ NASTAVENÍ SYSTÉMU ---
+model OrganizationSettings {
+  id                   Int     @id @default(1)
+  workOnWeekends       Boolean @default(false)
+  workOnHolidays       Boolean @default(false)
+  minRestBetweenShifts Int     @default(11) // Zákonný odpočinek v hodinách
+}
+
+// --- ČÍSELNÍKY A STRUKTURA ---
 model Location {
-  id          Int          @id @default(autoincrement())
-  name        String       
-  address     String?
-  profiles    Profile[]
-  shifts      Shift[]
+  id           Int                   @id @default(autoincrement())
+  name         String
+  address      String?
+  profiles     Profile[]
+  shifts       Shift[]
   requirements StaffingRequirement[]
-  createdAt   DateTime     @default(now())
+  createdAt    DateTime              @default(now())
 }
 
 model JobPosition {
-  id           Int          @id @default(autoincrement())
-  name         String       
-  isManagerial Boolean      @default(false)
+  id           Int                   @id @default(autoincrement())
+  name         String
+  isManagerial Boolean               @default(false)
   profiles     Profile[]
   requirements StaffingRequirement[]
 }
 
-model Profile {
-  id                   String        @id @default(uuid())
-  email                String        @unique  
-  password             String                 
-  fullName             String
-  role                 UserRole      @default(EMPLOYEE)
-  targetHoursPerWeek   Decimal       @default(40)
-  
-  locationId           Int?
-  location             Location?     @relation(fields: [locationId], references: [id])
-  
-  positionId           Int?
-  position             JobPosition?  @relation(fields: [positionId], references: [id])
-  
-  availabilities       Availability[]
-  assignedShifts       Shift[]
-  
-  createdAt            DateTime      @default(now())
-}
-
 model ShiftType {
-  id          Int          @id @default(autoincrement())
-  name        String      
-  startTime   String     
-  endTime     String       
-  colorCode   String       @default("#3b82f6")
-  shifts      Shift[]
+  id           Int                   @id @default(autoincrement())
+  name         String                // např. "Ranní", "Odpolední", "Vlastní"
+  startTime    String?               // Formát "HH:mm", null pro flexibilní směny
+  endTime      String?
+  colorCode    String                @default("#3b82f6")
+  shifts       Shift[]
   requirements StaffingRequirement[]
+  availabilities Availability[]      // Vazba pro preference konkrétních směn
 }
 
+// --- UŽIVATELÉ ---
+model Profile {
+  id                 String         @id @default(uuid())
+  email              String         @unique
+  password           String?
+  fullName           String
+  role               UserRole       @default(EMPLOYEE)
+  targetHoursPerMonth Decimal        @default(160) // Fond hodin pro plný úvazek
+  
+  invitationToken    String?        @unique
+  invitationExpires  DateTime?
+  isActivated        Boolean        @default(false)
+
+  locationId         Int?
+  location           Location?      @relation(fields: [locationId], references: [id])
+
+  positionId         Int?
+  position           JobPosition?   @relation(fields: [positionId], references: [id])
+  
+  availabilities     Availability[]
+  assignedShifts     Shift[]
+  createdAt          DateTime       @default(now())
+  submissions    ScheduleSubmission[]
+}
+
+// --- PLÁNOVÁNÍ: POTŘEBA OBSAZENÍ (DRAFTY) ---
 model StaffingRequirement {
-  id          Int        @id @default(autoincrement())
-  dayOfWeek   Int       
-  minEmployees Int       @default(1)
+  id            Int         @id @default(autoincrement())
+  date          DateTime?   // Konkrétní den pro mimořádné směny
+  dayOfWeek     Int?        // 0-6 (0=Neděle) pro opakující se šablony týdne
   
-  locationId  Int
-  location    Location   @relation(fields: [locationId], references: [id])
+  // Definice slotů na směně
+  countFullTime Int         @default(0) // Kolik chceme HPP zaměstnanců
+  countPartTime Int         @default(0) // Kolik chceme brigádníků
+  countAny      Int         @default(0) // Je jedno, kdo tam půjde (priorita HPP pak DPP)
   
-  shiftTypeId Int
-  shiftType   ShiftType  @relation(fields: [shiftTypeId], references: [id])
+  locationId    Int
+  location      Location    @relation(fields: [locationId], references: [id])
   
-  positionId  Int
-  position    JobPosition @relation(fields: [positionId], references: [id])
+  shiftTypeId   Int
+  shiftType     ShiftType   @relation(fields: [shiftTypeId], references: [id])
+  
+  positionId    Int
+  position      JobPosition @relation(fields: [positionId], references: [id])
 }
 
+// --- REALIZOVANÉ SMĚNY ---
 model Shift {
-  id              String      @id @default(uuid())
-  startDatetime   DateTime
-  endDatetime     DateTime
-  status          ShiftStatus @default(DRAFT)
+  id             String      @id @default(uuid())
+  startDatetime  DateTime
+  endDatetime    DateTime
+  status         ShiftStatus @default(DRAFT)
+  availabilities  Availability[]
 
-  locationId      Int
-  location        Location    @relation(fields: [locationId], references: [id])
+  locationId     Int
+  location       Location    @relation(fields: [locationId], references: [id])
 
-  shiftTypeId     Int
-  shiftType       ShiftType   @relation(fields: [shiftTypeId], references: [id])
+  shiftTypeId    Int
+  shiftType      ShiftType   @relation(fields: [shiftTypeId], references: [id])
 
-  assignedUserId  String?
-  assignedUser    Profile?    @relation(fields: [assignedUserId], references: [id])
+  // Prázdné před přiřazením algoritmem nebo výběrem brigádníka
+  assignedUserId String?
+  assignedUser   Profile?    @relation(fields: [assignedUserId], references: [id])
 
-  createdAt       DateTime    @default(now())
+  createdAt      DateTime    @default(now())
 }
 
+// --- DOSTUPNOST A PREFERENCE ZAMĚSTNANCŮ ---
 model Availability {
   id            String           @id @default(uuid())
-  startDatetime DateTime
-  endDatetime   DateTime
+  startDatetime DateTime         // Kdy preference začíná (pro flexibilitu v rámci dne)
+  endDatetime   DateTime         // Kdy preference končí
   type          AvailabilityType @default(AVAILABLE)
+
+  shiftId       String?          
+  shift         Shift?           @relation(fields: [shiftId], references: [id])
+
+  // Pokud si vybírají "chci ranní", propojí se to zde:
+  shiftTypeId   Int?             
+  shiftType     ShiftType?       @relation(fields: [shiftTypeId], references: [id])
 
   userId        String
   user          Profile          @relation(fields: [userId], references: [id])
@@ -107,20 +139,34 @@ model Availability {
   createdAt     DateTime         @default(now())
 }
 
+model ScheduleSubmission {
+  id          String   @id @default(uuid())
+  weekNumber  Int      // Např. 7
+  year        Int      // Např. 2026
+  submittedAt DateTime @default(now())
+  
+  userId      String
+  user        Profile  @relation(fields: [userId], references: [id])
 
+  @@unique([userId, weekNumber, year]) // Jeden uživatel potvrdí jeden týden jen jednou
+}
+
+// --- ENUMERACE ---
 enum UserRole {
   ADMIN
   MANAGER
-  EMPLOYEE
+  EMPLOYEE    // Plný úvazek (HPP)
+  PART_TIMER  // Brigádník (DPP/DPČ)
 }
 
 enum ShiftStatus {
-  DRAFT
-  PUBLISHED
+  DRAFT       // Vidí jen admin
+  PUBLISHED   // Vidí zaměstnanec
+  OFFERED     // Nabídka v burze pro brigádníky
 }
 
 enum AvailabilityType {
   AVAILABLE
   UNAVAILABLE
-  PREFERRED
+  PREFERRED   // Chci tuhle směnu/čas
 }
