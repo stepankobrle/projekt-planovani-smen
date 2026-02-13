@@ -8,6 +8,10 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { ShiftsModule } from './shifts/shifts.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { ScheduleModule } from './schedule/schedule.module';
+import { UsersModule } from './users/users.module';
+import { JobPositionsModule } from './job-positions/job-positions.module';
+import { ShiftTypesModule } from './shift-types/shift-types.module';
+import { OrganizationSettingsModule } from './organization-settings/organization-settings.module';
 
 @Global()
 @Module({
@@ -30,6 +34,10 @@ import { ScheduleModule } from './schedule/schedule.module';
     ShiftsModule,
     AvailabilityModule,
     ScheduleModule,
+    UsersModule,
+    JobPositionsModule,
+    ShiftTypesModule,
+    OrganizationSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

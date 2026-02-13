@@ -1,6 +1,24 @@
+// backend/src/shifts/dto/create-shift.dto.ts
+import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
+
 export class CreateShiftDto {
-  date: string; // Datum, pro které směny generujeme (např. "2026-02-10")
-  shiftTypeId: number; // ID šablony (Ranní/Odpolední...)
-  locationId: number; // ID pobočky/místa
-  count: number; // Kolik "krabiček" (slotů) chceme vytvořit
+  @IsNotEmpty()
+  @IsString()
+  date: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  shiftTypeId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  locationId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  count: number;
+
+  @IsNotEmpty()
+  @IsString() // Pokud používáš UUID (String), jinak IsNumber()
+  scheduleGroupId: string;
 }

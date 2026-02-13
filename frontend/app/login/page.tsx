@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie"; // Nezapomeň: npm install js-cookie
 
 export default function LoginPage() {
 	const [email, setEmail] = useState("");
@@ -16,6 +17,7 @@ export default function LoginPage() {
 		setLoading(true);
 
 		try {
+			// Používáme tvůj endpoint z AuthService.signIn
 			const response = await fetch("http://localhost:3001/auth/login", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -25,11 +27,18 @@ export default function LoginPage() {
 			const data = await response.json();
 
 			if (response.ok) {
-				localStorage.setItem("token", data.access_token);
-				if (data.user) {
-					localStorage.setItem("user", JSON.stringify(data.user));
+				// 1. Uložíme token do cookies (vyprší za 24h)
+				Cookies.set("token", data.access_token, { expires: 1, secure: false }); // secure: true dej až na produkci (HTTPS)
+
+				// 2. Uložíme roli pro rychlý přístup v Layoutu
+				if (data.user && data.user.role && data.user.id) {
+					Cookies.set("id", data.user.id, { expires: 1 });
+					Cookies.set("role", data.user.role, { expires: 1 });
 				}
+
+				// 3. Přesměrování na dashboard nebo přímo na rozvrhy
 				router.push("/dashboard");
+				router.refresh(); // Vynutí refresh, aby layout načetl nové cookies
 			} else {
 				setError(data.message || "Neplatné přihlašovací údaje");
 			}
@@ -43,44 +52,49 @@ export default function LoginPage() {
 	};
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 font-sans">
 			<form
 				onSubmit={handleLogin}
-				className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
-				<h1 className="text-2xl font-bold mb-6 text-center text-gray-800">
-					Přihlášení do systému
-				</h1>
+				className="w-full max-w-md bg-white p-10 rounded-2xl shadow-xl border border-slate-100">
+				<div className="mb-8 text-center">
+					<h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">
+						Vítejte zpět
+					</h1>
+					<p className="text-slate-400 text-sm font-medium mt-2">
+						Přihlaste se do systému správy směn
+					</p>
+				</div>
 
 				{error && (
-					<div className="mb-4 p-3 bg-red-100 text-red-600 text-sm rounded border border-red-200 text-center">
+					<div className="mb-6 p-4 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100 text-center uppercase tracking-wide">
 						{error}
 					</div>
 				)}
 
 				<div className="mb-4">
-					<label className="block text-sm font-medium text-gray-700">
-						E-mail
+					<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">
+						E-mailová adresa
 					</label>
 					<input
 						type="email"
 						value={email}
 						onChange={(e) => setEmail(e.target.value)}
-						className="mt-1 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
-						placeholder="admin@test.cz"
+						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 transition-all font-medium"
+						placeholder="vas@email.cz"
 						required
 						disabled={loading}
 					/>
 				</div>
 
-				<div className="mb-6">
-					<label className="block text-sm font-medium text-gray-700">
+				<div className="mb-8">
+					<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">
 						Heslo
 					</label>
 					<input
 						type="password"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
-						className="mt-1 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 transition-all font-medium"
 						placeholder="••••••••"
 						required
 						disabled={loading}
@@ -90,12 +104,12 @@ export default function LoginPage() {
 				<button
 					type="submit"
 					disabled={loading}
-					className={`w-full p-2 rounded text-white font-semibold transition ${
+					className={`w-full p-4 rounded-xl text-white font-bold text-sm uppercase tracking-widest transition-all shadow-lg ${
 						loading
-							? "bg-blue-400 cursor-not-allowed"
-							: "bg-blue-600 hover:bg-blue-700 shadow-sm"
+							? "bg-indigo-300 cursor-not-allowed"
+							: "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-[0.98]"
 					}`}>
-					{loading ? "Přihlašování..." : "Přihlásit se"}
+					{loading ? "Ověřování..." : "Přihlásit se"}
 				</button>
 			</form>
 		</div>

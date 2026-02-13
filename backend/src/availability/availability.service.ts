@@ -1,15 +1,14 @@
 // backend/src/shifts/availability.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service'; // Zkontroluj cestu k tvé PrismaService
+import { PrismaService } from '../prisma.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
-import { Availability } from '@prisma/client';
 
 @Injectable()
 export class AvailabilityService {
   constructor(private prisma: PrismaService) {}
 
   async createOrUpdate(dto: CreateAvailabilityDto) {
-    // 1. Nejdříve si ověříme, že směna (krabička) existuje
+    // 1. Nejdříve si ověříme, že směna  existuje
     const shift = await this.prisma.shift.findUnique({
       where: { id: dto.shiftId },
     });

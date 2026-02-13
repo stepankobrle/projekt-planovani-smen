@@ -117,6 +117,19 @@ model Shift {
   assignedUser   Profile?    @relation(fields: [assignedUserId], references: [id])
 
   createdAt      DateTime    @default(now())
+
+  scheduleGroupId String?
+  scheduleGroup   ScheduleGroup? @relation(fields: [scheduleGroupId], references: [id])
+}
+
+model ScheduleGroup {
+  id        String   @id @default(uuid())
+  name      String   // např. "Únor 2026"
+  dateFrom  DateTime
+  dateTo    DateTime
+  status    String   @default("DRAFT") // DRAFT, OPEN, PUBLISHED
+  createdAt DateTime @default(now())
+  shifts    Shift[]  // Vazba na směny
 }
 
 // --- DOSTUPNOST A PREFERENCE ZAMĚSTNANCŮ ---
@@ -150,6 +163,7 @@ model ScheduleSubmission {
 
   @@unique([userId, weekNumber, year]) // Jeden uživatel potvrdí jeden týden jen jednou
 }
+
 
 // --- ENUMERACE ---
 enum UserRole {

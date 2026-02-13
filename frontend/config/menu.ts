@@ -1,4 +1,5 @@
 import { LayoutDashboard, Users, CalendarDays, Settings } from "lucide-react";
+import { title } from "process";
 
 export enum UserRole {
 	ADMIN = "ADMIN",
@@ -32,11 +33,33 @@ export const menuItems: MenuItem[] = [
 				href: "/employees",
 				roles: [UserRole.ADMIN],
 			},
-			{ title: "Pobočky", href: "/admin/locations", roles: [UserRole.ADMIN] },
 			{
 				title: "Pracovní pozice",
-				href: "/admin/positions",
+				href: "/positions",
 				roles: [UserRole.ADMIN, UserRole.MANAGER],
+			},
+		],
+	},
+	{
+		title: "Směny",
+		href: "/schedule",
+		icon: CalendarDays,
+		roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE],
+	},
+	{
+		title: "Administrace",
+		icon: Settings,
+		roles: [UserRole.ADMIN],
+		items: [
+			{
+				title: "Směny",
+				href: "/shift-types",
+				roles: [UserRole.ADMIN],
+			},
+			{
+				title: "Nastavení směn",
+				href: "/settings",
+				roles: [UserRole.ADMIN],
 			},
 		],
 	},
