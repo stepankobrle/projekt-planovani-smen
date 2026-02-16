@@ -12,6 +12,9 @@ import { UsersModule } from './users/users.module';
 import { JobPositionsModule } from './job-positions/job-positions.module';
 import { ShiftTypesModule } from './shift-types/shift-types.module';
 import { OrganizationSettingsModule } from './organization-settings/organization-settings.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { PrismaModule } from 'prisma/prisma.module';
+import { VacationsModule } from './vacations/vacations.module';
 
 @Global()
 @Module({
@@ -38,6 +41,9 @@ import { OrganizationSettingsModule } from './organization-settings/organization
     JobPositionsModule,
     ShiftTypesModule,
     OrganizationSettingsModule,
+    NotificationsModule,
+    PrismaModule,
+    VacationsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

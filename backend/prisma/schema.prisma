@@ -31,6 +31,8 @@ model Location {
   shifts       Shift[]
   requirements StaffingRequirement[]
   createdAt    DateTime              @default(now())
+  notifications Notification[]
+  scheduleGroups ScheduleGroup[]
 }
 
 model JobPosition {
@@ -39,6 +41,8 @@ model JobPosition {
   isManagerial Boolean               @default(false)
   profiles     Profile[]
   requirements StaffingRequirement[]
+  shifts Shift[]
+
 }
 
 model ShiftType {
@@ -68,14 +72,48 @@ model Profile {
   locationId         Int?
   location           Location?      @relation(fields: [locationId], references: [id])
 
-  positionId         Int?
-  position           JobPosition?   @relation(fields: [positionId], references: [id])
+  jobPositionId         Int?
+  jobPosition           JobPosition?   @relation(fields: [jobPositionId], references: [id])
   
   availabilities     Availability[]
   assignedShifts     Shift[]
   createdAt          DateTime       @default(now())
   submissions    ScheduleSubmission[]
+
+vacationRequests      VacationRequest[]
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
 }
+
+
+model VacationRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  user      Profile  @relation(fields: [userId], references: [id])
+  
+  startDate DateTime
+  endDate   DateTime
+  type      String   @default("VACATION") 
+  status    String   @default("PENDING") 
+  
+  note      String? 
+  createdAt DateTime @default(now())
+}
+
+
+model Notification {
+  id        String   @id @default(uuid())
+  content   String   
+  isRead    Boolean  @default(false)
+  type      String   // ALERT, INFO, VACATION_REQUEST
+  createdAt DateTime @default(now())
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+
+  recipientId String
+  recipient   Profile @relation("ReceivedNotifications", fields: [recipientId], references: [id])
+}
+
 
 // --- PLÁNOVÁNÍ: POTŘEBA OBSAZENÍ (DRAFTY) ---
 model StaffingRequirement {
@@ -109,8 +147,8 @@ model Shift {
   locationId     Int
   location       Location    @relation(fields: [locationId], references: [id])
 
-  shiftTypeId    Int
-  shiftType      ShiftType   @relation(fields: [shiftTypeId], references: [id])
+  shiftTypeId    Int?
+  shiftType      ShiftType?  @relation(fields: [shiftTypeId], references: [id])
 
   // Prázdné před přiřazením algoritmem nebo výběrem brigádníka
   assignedUserId String?
@@ -120,16 +158,31 @@ model Shift {
 
   scheduleGroupId String?
   scheduleGroup   ScheduleGroup? @relation(fields: [scheduleGroupId], references: [id])
+
+  isMarketplace Boolean @default(false)
+
+  jobPositionId      Int
+  jobPosition        JobPosition    @relation(fields: [jobPositionId], references: [id])
+
 }
 
 model ScheduleGroup {
-  id        String   @id @default(uuid())
-  name      String   // např. "Únor 2026"
-  dateFrom  DateTime
-  dateTo    DateTime
-  status    String   @default("DRAFT") // DRAFT, OPEN, PUBLISHED
-  createdAt DateTime @default(now())
-  shifts    Shift[]  // Vazba na směny
+  id           String         @id @default(uuid())
+  name         String?        // Teď už může být volitelné, název se generuje z měsíce
+  year         Int      
+  month        Int      
+  locationId   Int
+  calendarDays String[]       // Např. ["2026-02-01", "2026-02-02", ...]
+  status       ScheduleStatus @default(DRAFT)
+  
+
+  shifts       Shift[]
+  location   Location       @relation(fields: [locationId], references: [id]) 
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt // Automaticky aktualizuje čas při změně
+
+  @@unique([locationId, year, month])
 }
 
 // --- DOSTUPNOST A PREFERENCE ZAMĚSTNANCŮ ---
@@ -173,10 +226,18 @@ enum UserRole {
   PART_TIMER  // Brigádník (DPP/DPČ)
 }
 
+enum ScheduleStatus {
+  DRAFT
+  PREFERENCES   // Probíhá sběr dat od lidí
+  GENERATED     // Algoritmus proběhl, admin ladí
+  PUBLISHED     // Finální verze pro všechny
+}
+
 enum ShiftStatus {
-  DRAFT       // Vidí jen admin
-  PUBLISHED   // Vidí zaměstnanec
-  OFFERED     // Nabídka v burze pro brigádníky
+  DRAFT
+  OFFERED
+  GENERATED     // Algoritmus proběhl, admin ladí
+  PUBLISHED     // Finální verze pro všechny
 }
 
 enum AvailabilityType {

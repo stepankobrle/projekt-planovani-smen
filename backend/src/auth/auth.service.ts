@@ -22,9 +22,11 @@ export class AuthService {
       console.log('DEBUG BACKEND - User z DB:', user);
       const payload = {
         sub: user.id,
+        id: user.id,
         email: user.email,
         role: user.role,
         locationId: user.locationId,
+        fullName: user.fullName,
       };
 
       return {

@@ -1,9 +1,21 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateShiftDto } from './create-shift.dto';
+import { IsOptional, IsString, IsInt } from 'class-validator';
 
 export class UpdateShiftDto extends PartialType(CreateShiftDto) {
-  assignedUserId?: string | null;
-  shiftTypeId?: number; // Změna na number, protože v modelu máš Int
-  startDatetime?: Date;
-  endDatetime?: Date;
+  @IsOptional()
+  @IsString()
+  assignedUserId?: string;
+
+  @IsOptional()
+  @IsString()
+  startDatetime?: string; // Musí tam být toto přesné jméno
+
+  @IsOptional()
+  @IsString()
+  endDatetime?: string; // Musí tam být toto přesné jméno
+
+  @IsOptional()
+  @IsInt()
+  jobPositionId?: number;
 }

@@ -23,7 +23,7 @@ export class ShiftsController {
   @Post() // Odpovídá axios.post('/shifts', ...)
   @Roles('ADMIN')
   create(@Body() createShiftDto: CreateShiftDto) {
-    return this.shiftsService.createDraftSlots(createShiftDto);
+    return this.shiftsService.createShifts(createShiftDto);
   }
   //
   @Post('bulk')

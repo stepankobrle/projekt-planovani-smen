@@ -270,7 +270,7 @@ export default function EmployeesPage() {
 										</span>
 									</td>
 									<td className="px-6 py-4 text-sm font-medium text-slate-600">
-										{emp.position?.name || "-"}
+										{emp.jobPosition?.name || "-"}
 									</td>
 									<td className="px-6 py-4">
 										{emp.isActivated ? (

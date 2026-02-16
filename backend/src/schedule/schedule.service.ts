@@ -6,8 +6,81 @@ import { Shift, ShiftStatus } from '@prisma/client';
 export class ScheduleService {
   constructor(private prisma: PrismaService) {}
 
-  // --- 1. SPRÁVA SKUPIN (MĚSÍČNÍCH ROZVRHŮ) ---
+  // 1. Najde rozvrh pro konkrétní rok a měsíc
+  async getByMonth(locationId: number, year: number, month: number) {
+    return this.prisma.scheduleGroup.findFirst({
+      where: {
+        locationId: locationId,
+        year: year,
+        month: month,
+      },
+      include: {
+        shifts: {
+          include: {
+            shiftType: true,
+            assignedUser: true,
+          },
+        },
+      },
+    });
+  }
 
+  // 2. Vytvoří DALŠÍ měsíc v pořadí
+  async createNextMonth(locationId: number) {
+    // 1. Zkusíme najít poslední existující měsíc
+    const lastGroup = await this.prisma.scheduleGroup.findFirst({
+      where: { locationId },
+      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+    });
+
+    let targetYear: number;
+    let targetMonth: number;
+
+    if (!lastGroup) {
+      // --- FALLBACK PRO ÚPLNĚ PRVNÍ ROZVRH ---
+      const now = new Date();
+      targetYear = now.getFullYear();
+      targetMonth = now.getMonth() + 1; // getMonth() v JS vrací 0-11, proto +1
+      console.log(
+        `Prázdná DB: Inicializuji první rozvrh pro ${targetMonth}/${targetYear}`,
+      );
+    } else {
+      // --- KLASICKÁ NAVAZUJÍCÍ LOGIKA ---
+      targetMonth = lastGroup.month + 1;
+      targetYear = lastGroup.year;
+
+      if (targetMonth > 12) {
+        targetMonth = 1;
+        targetYear++;
+      }
+    }
+
+    // 2. Vygenerujeme dny pro daný měsíc
+    // Trika s Date(year, month, 0).getDate() získá počet dní v měsíci
+    const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+    const calendarDays = [] as string[];
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = i < 10 ? `0${i}` : `${i}`;
+      const m = targetMonth < 10 ? `0${targetMonth}` : `${targetMonth}`;
+      calendarDays.push(`${targetYear}-${m}-${d}`);
+    }
+
+    // 3. Vytvoření záznamu
+    return this.prisma.scheduleGroup.create({
+      data: {
+        name: `Rozvrh ${targetMonth}/${targetYear}`,
+        year: targetYear,
+        month: targetMonth,
+        locationId: locationId,
+        calendarDays,
+        status: 'DRAFT',
+      },
+    });
+  }
+}
+// --- 1. SPRÁVA SKUPIN (MĚSÍČNÍCH ROZVRHŮ) ---
+/*
   async createGroup(dto: { name: string; dateFrom: string; dateTo: string }) {
     return this.prisma.scheduleGroup.create({
       data: {
@@ -254,4 +327,5 @@ export class ScheduleService {
 
     return { message: 'Rozvrh byl úspěšně publikován.' };
   }
-}
+
+  */

@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { CreateScheduleGroupDto } from './dto/create-schedule.dto';
@@ -18,6 +19,37 @@ import { Roles } from '../auth/roles.decorator';
 export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}
 
+  // Vytvoření nového měsíčního rozvrhu
+  @Get('find')
+  @Roles('ADMIN')
+  async findByMonth(
+    @Query('locationId') locationId: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
+  ) {
+    console.log(`Požadavek na view: loc=${locationId}, y=${year}, m=${month}`);
+    const result = await this.scheduleService.getByMonth(
+      Number(locationId),
+      Number(year),
+      Number(month),
+    );
+    return result;
+  }
+
+  @Post('init-next')
+  @Roles('ADMIN')
+  async initNext(@Body('locationId') locationId: number) {
+    return this.scheduleService.createNextMonth(locationId);
+  }
+
+  // Ostatní akce zůstávají (generování, publikování)
+  // @Patch(':id/publish-final')
+  // async publishFinal(@Param('id') id: string) {
+  //   return this.scheduleService.updateStatus(id, 'PUBLISHED');
+  // }
+}
+
+/*
   // --- ZÁKLADNÍ SPRÁVA ROZVRHŮ ---
   // Vytvoření rozvrhu
   @Post()
@@ -58,4 +90,4 @@ export class ScheduleController {
   async publishFinal(@Param('id') id: string) {
     return this.scheduleService.publishFinalSchedule(id);
   }
-}
+    */

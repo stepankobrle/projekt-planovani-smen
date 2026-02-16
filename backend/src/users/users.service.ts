@@ -43,7 +43,7 @@ export class UsersService {
       role: dto.role,
       targetHoursPerMonth: dto.targetHours,
       locationId: correctLocationId,
-      positionId: dto.positionId,
+      jobPositionId: dto.positionId,
       invitationToken: token,
       invitationExpires: expires,
     };
@@ -109,7 +109,7 @@ export class UsersService {
         isActivated: true,
       },
       include: {
-        position: true,
+        jobPosition: true,
       },
       orderBy: {
         fullName: 'asc',
@@ -127,7 +127,7 @@ export class UsersService {
         role: dto.role,
         // Mapování názvů z DTO na DB
         targetHoursPerMonth: dto.targetHours,
-        positionId: dto.positionId,
+        jobPositionId: dto.positionId,
       },
     });
   }

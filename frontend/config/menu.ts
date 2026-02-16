@@ -35,14 +35,14 @@ export const menuItems: MenuItem[] = [
 			},
 			{
 				title: "Pracovní pozice",
-				href: "/positions",
+				href: "/job-positions",
 				roles: [UserRole.ADMIN, UserRole.MANAGER],
 			},
 		],
 	},
 	{
-		title: "Směny",
-		href: "/schedule",
+		title: "Rozvrhy",
+		href: "/schedule/1",
 		icon: CalendarDays,
 		roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE],
 	},

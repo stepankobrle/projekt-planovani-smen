@@ -1,4 +1,3 @@
-// backend/src/shifts/shifts.service.ts
 import {
   BadRequestException,
   Injectable,
@@ -13,16 +12,13 @@ import { UpdateShiftDto } from './dto/update-shift.dto';
 export class ShiftsService {
   constructor(private prisma: PrismaService) {}
 
-  // --- HROMADNÉ VYTVOŘENÍ ZE ŠABLONY (BOD 1 tvého plánu) ---
+  // --- 1. HROMADNÉ VYTVOŘENÍ ZE ŠABLONY ---
   async bulkCreateFromTemplate(dto: any) {
-    // Změň dočasně na any pro snazší ladění
     console.log('--- DEBUG START ---');
-    console.log('Přijaté DTO:', dto); // Sleduj terminál!
+    console.log('Přijaté DTO:', dto);
 
-    // Ochrana proti pádu aplikace
     if (!dto || !dto.items) {
-      console.error('CHYBA: Data nedorazila do service');
-      throw new Error("Payload is missing 'items' property");
+      throw new BadRequestException("Payload is missing 'items' property");
     }
 
     const shiftsToCreate: Prisma.ShiftCreateManyInput[] = [];
@@ -37,12 +33,11 @@ export class ShiftsService {
         continue;
       }
 
-      const [startH, startM] = type.startTime
-        ? type.startTime.split(':').map(Number)
-        : [8, 0];
-      const [endH, endM] = type.endTime
-        ? type.endTime.split(':').map(Number)
-        : [16, 0];
+      // Zpracování času ze šablony
+      const [startH, startM] = (type.startTime || '08:00')
+        .split(':')
+        .map(Number);
+      const [endH, endM] = (type.endTime || '16:00').split(':').map(Number);
 
       const startDatetime = new Date(item.date);
       startDatetime.setHours(startH, startM, 0, 0);
@@ -54,97 +49,207 @@ export class ShiftsService {
         endDatetime.setDate(endDatetime.getDate() + 1);
       }
 
-      for (let i = 0; i < item.count; i++) {
+      // Vytvoření slotů dle počtu (count)
+      for (let i = 0; i < (item.count || 1); i++) {
         shiftsToCreate.push({
           scheduleGroupId: dto.scheduleGroupId,
-          shiftTypeId: Number(item.shiftTypeId),
+          shiftTypeId: type.id,
           locationId: Number(dto.locationId),
-          startDatetime: new Date(startDatetime),
-          endDatetime: new Date(endDatetime),
+          jobPositionId: Number(dto.jobPositionId), // Používáme jobPositionId dle tvé migrace
+          startDatetime: startDatetime,
+          endDatetime: endDatetime,
           status: ShiftStatus.DRAFT,
+          isMarketplace: false, // Šablony jsou obvykle v draftu
         });
       }
     }
 
-    console.log(`Pripraveno k vytvoreni: ${shiftsToCreate.length} směn.`);
     return this.prisma.shift.createMany({
       data: shiftsToCreate,
     });
   }
 
-  // --- STÁVAJÍCÍ METODY ---
-  async createDraftSlots(dto: CreateShiftDto) {
-    // 1. Validace vstupu - pojistka, aby aplikace nespadla na Prisma chybě
-    const idAsNumber = Number(dto.shiftTypeId);
+  // --- 2. JEDNOTLIVÉ VYTVOŘENÍ (Z MODÁLU) ---
+  async createShifts(dto: CreateShiftDto) {
+    let finalStart: string;
+    let finalEnd: string;
+    let idAsNumber: number | null = null;
 
-    if (isNaN(idAsNumber)) {
-      throw new BadRequestException(
-        `Neplatné ID typu směny: ${dto.shiftTypeId}`,
-      );
+    // ROZHODNUTÍ: Je to šablona nebo vlastní čas?
+    if (dto.shiftTypeId && dto.shiftTypeId !== 'vlastni') {
+      // --- PŘÍPAD A: ŠABLONA ---
+      idAsNumber = Number(dto.shiftTypeId);
+      const shiftType = await this.prisma.shiftType.findUnique({
+        where: { id: idAsNumber },
+      });
+
+      if (!shiftType) throw new BadRequestException(`Typ směny nenalezen`);
+
+      // Vezmeme časy ze šablony
+      finalStart = shiftType.startTime || '08:00';
+      finalEnd = shiftType.endTime || '16:00';
+    } else {
+      // --- PŘÍPAD B: VLASTNÍ ČAS ---
+      // Do DB uložíme u shiftTypeId NULL
+      idAsNumber = null;
+
+      finalStart = dto.startTime || '08:00';
+      finalEnd = dto.endTime || '16:00';
     }
 
-    // 2. Hledání typu směny
-    const shiftType = await this.prisma.shiftType.findUnique({
-      where: {
-        id: idAsNumber,
-      },
-    });
-
-    if (!shiftType) {
-      throw new BadRequestException(
-        `Typ směny s ID ${dto.shiftTypeId} nebyl nalezen.`,
-      );
-    }
-
+    const initialStatus = (dto.status as ShiftStatus) || ShiftStatus.DRAFT;
     const createdShifts: any[] = [];
 
-    for (let i = 0; i < dto.count; i++) {
+    // Cyklus pro vytvoření (např. pokud vytváříš 3 stejné směny naráz)
+    for (let i = 0; i < (dto.count || 1); i++) {
+      // Tady spojíme datum (např. 2024-05-20) a čas (např. 14:30) do jednoho Date objektu
       const start = new Date(dto.date);
-      const [sh, sm] = (shiftType.startTime || '08:00').split(':');
+      const [sh, sm] = finalStart.split(':');
       start.setHours(parseInt(sh), parseInt(sm), 0, 0);
 
       const end = new Date(dto.date);
-      const [eh, em] = (shiftType.endTime || '16:00').split(':');
+      const [eh, em] = finalEnd.split(':');
       end.setHours(parseInt(eh), parseInt(em), 0, 0);
 
+      // Ošetření přechodu přes půlnoc
       if (end <= start) {
         end.setDate(end.getDate() + 1);
       }
 
+      // ULOŽENÍ DO TABULKY SHIFT
       const shift = await this.prisma.shift.create({
         data: {
-          startDatetime: start,
-          endDatetime: end,
-          shiftTypeId: idAsNumber,
+          startDatetime: start, // Tady je ten tvůj čas z inputu (nebo šablony)
+          endDatetime: end, // Tady je ten tvůj čas z inputu (nebo šablony)
+          shiftTypeId: idAsNumber, // Tady bude buď ID šablony nebo NULL (vlastní)
           locationId: Number(dto.locationId),
-          scheduleGroupId: dto.scheduleGroupId, // Pošleme ID přímo jako string/number
-          status: 'DRAFT',
+          scheduleGroupId: dto.scheduleGroupId,
+          jobPositionId: Number(dto.jobPositionId),
+          assignedUserId: dto.assignedUserId || null,
+          status: initialStatus,
+          isMarketplace: dto.offerToEmployees || false,
         },
       });
+
       createdShifts.push(shift);
     }
+    if (dto.offerToEmployees) {
+      await this.notifyEmployeesAboutNewShifts(
+        Number(dto.jobPositionId),
+        Number(dto.locationId),
+      );
+    }
+    // ... notifikace ...
     return createdShifts;
   }
 
+  private async notifyEmployeesAboutNewShifts(
+    jobPositionId: number,
+    locationId: number,
+  ) {
+    console.log(
+      `Notifikace: Nové směny pro pozici ${jobPositionId} v lokaci ${locationId}`,
+    );
+  }
+
+  async findAllDrafts() {
+    return this.prisma.shift.findMany({
+      where: { status: ShiftStatus.DRAFT },
+      include: { shiftType: true, location: true },
+      orderBy: { startDatetime: 'asc' },
+    });
+  }
+
+  // Upravený update, aby přesně odpovídal DTO
   async update(id: string, dto: UpdateShiftDto) {
+    // 1. Nejprve musíme načíst stávající směnu, abychom znali její datum
+    const existingShift = await this.prisma.shift.findUnique({
+      where: { id },
+      include: { shiftType: true },
+    });
+    if (!existingShift) throw new NotFoundException('Směna nenalezena');
+    let finalStart: Date | undefined = undefined;
+    let finalEnd: Date | undefined = undefined;
+    let idAsNumber: number | undefined | null = undefined;
+    // 2. LOGIKA PŘEPOČTU ČASU (pokud se mění šablona nebo časy)
+    // Kontrolujeme, zda přišel nový startTime, endTime nebo shiftTypeId
+    if (dto.startTime || dto.endTime || dto.shiftTypeId !== undefined) {
+      let timeS: string;
+      let timeE: string;
+
+      if (dto.shiftTypeId && dto.shiftTypeId !== 'vlastni') {
+        // PŘÍPAD A: Změna na jinou šablonu
+        idAsNumber = Number(dto.shiftTypeId);
+        const st = await this.prisma.shiftType.findUnique({
+          where: { id: idAsNumber },
+        });
+        if (!st) throw new BadRequestException('Typ směny nenalezen');
+        timeS = dto.startTime || st.startTime || '';
+        timeE = dto.endTime || st.endTime || '';
+      } else if (
+        dto.shiftTypeId === 'vlastni' ||
+        (existingShift.shiftTypeId === null && (dto.startTime || dto.endTime))
+      ) {
+        // PŘÍPAD B: Vlastní čas (buď nově nastavený, nebo úprava stávajícího vlastního)
+        idAsNumber = null;
+        // Pokud v DTO chybí jeden z časů, vezmeme ho z existující směny (zformátovaný na HH:mm)
+        timeS =
+          dto.startTime ||
+          existingShift.startDatetime.toLocaleTimeString('cs-CZ', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        timeE =
+          dto.endTime ||
+          existingShift.endDatetime.toLocaleTimeString('cs-CZ', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+      } else {
+        // Ostatní případy (neměníme časovou logiku)
+        timeS = existingShift.startDatetime.toLocaleTimeString('cs-CZ', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        timeE = existingShift.endDatetime.toLocaleTimeString('cs-CZ', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+      // Sestavení nových Date objektů (použijeme datum z existující směny)
+      const baseDate = new Date(existingShift.startDatetime);
+      const [sh, sm] = timeS.split(':');
+      finalStart = new Date(baseDate);
+      finalStart.setHours(parseInt(sh), parseInt(sm), 0, 0);
+      const [eh, em] = timeE.split(':');
+      finalEnd = new Date(baseDate);
+      finalEnd.setHours(parseInt(eh), parseInt(em), 0, 0);
+      if (finalEnd <= finalStart) {
+        finalEnd.setDate(finalEnd.getDate() + 1);
+      }
+    }
+    // 3. SAMOTNÝ UPDATE
     return this.prisma.shift.update({
       where: { id },
       data: {
         assignedUserId:
           dto.assignedUserId !== undefined ? dto.assignedUserId : undefined,
-        shiftTypeId: dto.shiftTypeId ? Number(dto.shiftTypeId) : undefined,
-        startDatetime: dto.startDatetime
-          ? new Date(dto.startDatetime)
+        shiftTypeId: idAsNumber !== undefined ? idAsNumber : undefined,
+        jobPositionId: dto.jobPositionId
+          ? Number(dto.jobPositionId)
           : undefined,
-        endDatetime: dto.endDatetime ? new Date(dto.endDatetime) : undefined,
+        startDatetime: finalStart,
+        endDatetime: finalEnd,
+        status: dto.status ? (dto.status as ShiftStatus) : undefined,
       },
       include: {
         assignedUser: true,
-        shiftType: true, // Tohle zajistí, že frontend dostane nový colorCode a name
+        shiftType: true,
       },
     });
   }
 
+  // --- 4. OSTATNÍ POMOCNÉ METODY ---
   async getAvailableEmployees(locationId: number) {
     return this.prisma.profile.findMany({
       where: {
@@ -160,14 +265,6 @@ export class ShiftsService {
     });
   }
 
-  async findAllDrafts() {
-    return this.prisma.shift.findMany({
-      where: { status: 'DRAFT' },
-      include: { shiftType: true, location: true },
-      orderBy: { startDatetime: 'asc' },
-    });
-  }
-
   async getShiftsWithAvailabilities(
     locationId: number,
     dateFrom: Date,
@@ -180,7 +277,6 @@ export class ShiftsService {
       },
       include: {
         shiftType: true,
-        availabilities: { include: { user: true } },
         assignedUser: true,
       },
       orderBy: { startDatetime: 'asc' },
@@ -196,26 +292,12 @@ export class ShiftsService {
   }
 
   async deleteShift(id: string) {
-    // 1. Najdeme směnu, abychom věděli, komu ji mažeme
     const shift = await this.prisma.shift.findUnique({
       where: { id },
       include: { assignedUser: true },
     });
+    if (!shift) throw new NotFoundException('Směna nenalezena');
 
-    if (!shift) throw new Error('Směna nenalezena');
-
-    // 2. Pokud tam byl někdo přiřazen, simulujeme odeslání e-mailu/notifikace
-    if (shift.assignedUserId) {
-      console.log(`--- NOTIFIKACE ---`);
-      console.log(`Odesílám e-mail uživateli ${shift.assignedUser?.email}`);
-      console.log(
-        `Zpráva: Vaše směna dne ${shift.startDatetime.toLocaleDateString()} byla zrušena adminem.`,
-      );
-      // Zde by v budoucnu mohl být volán MailerService
-    }
-    // 3. Smažeme samotnou směnu
-    return this.prisma.shift.delete({
-      where: { id },
-    });
+    return this.prisma.shift.delete({ where: { id } });
   }
 }

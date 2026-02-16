@@ -3,4 +3,6 @@ export class CreateScheduleGroupDto {
   dateFrom: string;
   dateTo: string;
   locationId: number;
+  year: number;
+  month: number;
 }

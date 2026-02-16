@@ -1,24 +1,55 @@
-// backend/src/shifts/dto/create-shift.dto.ts
-import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateShiftDto {
-  @IsNotEmpty()
-  @IsString()
-  date: string;
+  @IsUUID()
+  scheduleGroupId: string;
 
-  @IsNotEmpty()
-  @IsNumber()
-  shiftTypeId: number;
-
-  @IsNotEmpty()
-  @IsNumber()
+  @IsInt()
   locationId: number;
 
-  @IsNotEmpty()
-  @IsNumber()
+  @IsString()
+  date: string; // YYYY-MM-DD
+
+  @IsInt()
   count: number;
 
-  @IsNotEmpty()
-  @IsString() // Pokud používáš UUID (String), jinak IsNumber()
-  scheduleGroupId: string;
+  @IsInt()
+  jobPositionId: number; // Musí zde bý
+
+  @IsString()
+  @IsOptional()
+  startDatetime?: string;
+
+  @IsString()
+  @IsOptional()
+  endDatetime?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string; // Např. "DRAFT", "OPEN"
+
+  @IsBoolean()
+  @IsOptional()
+  offerToEmployees?: boolean; // Pro Marketplace
+
+  @IsOptional()
+  @IsString()
+  startTime?: string; // Tady přijde např. "08:00" z FE
+
+  @IsOptional()
+  @IsString()
+  endTime?: string; // Tady přijde např. "16:00" z FE
+
+  @IsOptional()
+  shiftTypeId?: number | string | null;
+
+  @IsOptional()
+  @IsString()
+  assignedUserId?: string; // Aby fungovalo to jméno, co jsme přidali
 }
