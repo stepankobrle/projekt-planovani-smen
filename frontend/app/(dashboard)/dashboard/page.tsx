@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
+import Cookies from "js-cookie";
 
 export default function DashboardPage() {
 	const router = useRouter();
@@ -13,15 +14,17 @@ export default function DashboardPage() {
 
 	useEffect(() => {
 		// Načteme si info o uživateli, které jsme si uložili při loginu
-		const storedUser = localStorage.getItem("user");
+		const storedUser = Cookies.get("user");
 		if (storedUser) {
 			setUser(JSON.parse(storedUser));
 		}
 	}, []);
 
 	const handleLogout = () => {
-		localStorage.removeItem("token"); // Smažeme "vstupenku"
-		localStorage.removeItem("user"); // Smažeme info o uživateli
+		Cookies.remove("token"); // Smažeme "vstupenku"
+		Cookies.remove("user"); // Smažeme info o uživateli
+		Cookies.remove("id"); // Smažeme info o uživateli
+		Cookies.remove("role"); // Smažeme info o uživateli
 		router.push("/login"); // Šup na přihlášení
 	};
 
