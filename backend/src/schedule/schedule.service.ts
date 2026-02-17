@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { Shift, ShiftStatus } from '@prisma/client';
+import { ScheduleStatus, Shift, ShiftStatus } from '@prisma/client';
 
 @Injectable()
 export class ScheduleService {
@@ -78,7 +78,251 @@ export class ScheduleService {
       },
     });
   }
+
+  async updateStatus(id: string, status: string) {
+    return this.prisma.scheduleGroup.update({
+      where: { id },
+      data: {
+        // Přetypujeme string na Enum, aby si Prisma nestěžovala
+        status: status as ScheduleStatus,
+      },
+    });
+  }
+
+  // AUTOMATICKÉ PŘIŘAZENÍ
+  async runAutoAssignment(locationId: number, dateFrom: Date, dateTo: Date) {
+    const settings = await this.prisma.organizationSettings.findFirst();
+    const minRestHours = settings?.minRestBetweenShifts ?? 11;
+    // 1. Načtení směn k přiřazení (pouze v aktuálním okně)
+    const shiftsToAssign = await this.prisma.shift.findMany({
+      where: {
+        locationId,
+        status: 'DRAFT',
+        assignedUserId: null,
+        startDatetime: { gte: dateFrom, lte: dateTo },
+      },
+      include: { availabilities: true, shiftType: true },
+      orderBy: { startDatetime: 'asc' },
+    });
+
+    const employees = await this.prisma.profile.findMany({
+      where: { locationId, role: 'EMPLOYEE', isActivated: true },
+      include: { jobPosition: true },
+    });
+    // 2. INIT WORKLOAD & HISTORIE
+    // Načteme historii i 7 dní PŘED začátkem, abychom viděli "streaky" (šňůry směn) z minulého měsíce
+    const lookBackDate = new Date(dateFrom);
+    lookBackDate.setDate(lookBackDate.getDate() - 7);
+
+    const alreadyAssigned = await this.prisma.shift.findMany({
+      where: {
+        locationId,
+        assignedUserId: { not: null },
+        startDatetime: { gte: lookBackDate, lte: dateTo }, // <--- Tady je ta změna pro historii
+      },
+    });
+    const workLoad = new Map<string, number>();
+    const userSchedules = new Map<
+      string,
+      { start: number; end: number; dateStr: string }[]
+    >();
+    // Inicializace map
+    for (const emp of employees) {
+      workLoad.set(emp.id, 0);
+      userSchedules.set(emp.id, []);
+    }
+    // Naplnění existujícími daty
+    for (const s of alreadyAssigned) {
+      if (!s.assignedUserId) continue;
+
+      // Zde počítáme workload (jen pro směny v aktuálním měsíci, ne ty z historie)
+      const isInCurrentPeriod = s.startDatetime >= dateFrom;
+
+      let shiftDuration =
+        (s.endDatetime.getTime() - s.startDatetime.getTime()) / 36e5;
+      // Korekce přestávky pro existující směny
+      if (shiftDuration >= 6) shiftDuration -= 0.5;
+
+      if (isInCurrentPeriod) {
+        workLoad.set(
+          s.assignedUserId,
+          (workLoad.get(s.assignedUserId) || 0) + shiftDuration,
+        );
+      }
+      // Schedule ale plníme vším (i historií), kvůli kontrole odpočinku a streaku
+      const schedule = userSchedules.get(s.assignedUserId) || [];
+      schedule.push({
+        start: s.startDatetime.getTime(),
+        end: s.endDatetime.getTime(),
+        // Uložíme si string data pro snadnou kontrolu "dní v řadě" (YYYY-MM-DD)
+        dateStr: s.startDatetime.toISOString().split('T')[0],
+      });
+      userSchedules.set(s.assignedUserId, schedule);
+    }
+    const assignedResults: string[] = [];
+    // --- POMOCNÁ FUNKCE PRO ŘAZENÍ ---
+    // Tímto zajistíme, že logika je stejná pro standardní i přesčasové kandidáty
+    const sortCandidates = (
+      a: (typeof employees)[0],
+      b: (typeof employees)[0],
+      currentShift: (typeof shiftsToAssign)[0],
+    ) => {
+      // 1. Kritérium: PREFERENCE (Kdo chce, vyhrává)
+      const prefA =
+        currentShift.availabilities.find((p) => p.userId === a.id)?.type ===
+        'PREFERRED';
+      const prefB =
+        currentShift.availabilities.find((p) => p.userId === b.id)?.type ===
+        'PREFERRED';
+
+      if (prefA && !prefB) return -1; // A má přednost
+      if (!prefA && prefB) return 1; // B má přednost
+
+      // 2. Kritérium: VYTÍŽENÍ (Kdo má méně hodin, vyhrává - férovost)
+      const loadA = workLoad.get(a.id) || 0;
+      const loadB = workLoad.get(b.id) || 0;
+      return loadA - loadB;
+    };
+
+    // --- HLAVNÍ CYKLUS PŘIŘAZOVÁNÍ ---
+    for (const shift of shiftsToAssign) {
+      const shiftStart = shift.startDatetime.getTime();
+      const shiftEnd = shift.endDatetime.getTime();
+
+      // --- 1. ZÁKONNÁ KONTROLA: MAX DÉLKA SMĚNY (§ 83) ---
+      const rawDuration = (shiftEnd - shiftStart) / 36e5;
+      if (rawDuration > 12) {
+        console.warn(
+          `Směna ${shift.id} je delší než 12h, automat ji přeskočí.`,
+        );
+        continue;
+      }
+
+      // --- 2. ZÁKONNÁ KONTROLA: PŘESTÁVKA NA JÍDLO (§ 88) ---
+      let netDuration = rawDuration;
+      if (rawDuration >= 11) {
+        netDuration -= 1.0;
+      } else if (rawDuration >= 6) {
+        netDuration -= 0.5;
+      }
+
+      // KROK A: Filtrace kandidátů (Technické a Zákonné filtry)
+      let viableCandidates = employees.filter((emp) => {
+        // A. Pozice
+        if (emp.jobPositionId !== shift.jobPositionId) return false;
+
+        // B. Dostupnost
+        const pref = shift.availabilities.find((a) => a.userId === emp.id);
+        if (pref?.type === 'UNAVAILABLE') return false;
+
+        const schedule = userSchedules.get(emp.id) || [];
+
+        // C. Kolize (Double booking)
+        const hasOverlap = schedule.some(
+          (s) => shiftStart < s.end && shiftEnd > s.start,
+        );
+        if (hasOverlap) return false;
+
+        // D. Denní odpočinek (11h mezi směnami - § 90)
+        const hasRestViolation = schedule.some((s) => {
+          const diffAfter = (shiftStart - s.end) / 36e5;
+          const diffBefore = (s.start - shiftEnd) / 36e5;
+          return (
+            (diffAfter >= 0 && diffAfter < minRestHours) ||
+            (diffBefore >= 0 && diffBefore < minRestHours)
+          );
+        });
+        if (hasRestViolation) return false;
+
+        // --- 3. ZÁKONNÁ KONTROLA: TÝDENNÍ ODPOČINEK (§ 92) ---
+        let streak = 0;
+        const currentShiftDate = new Date(shift.startDatetime);
+
+        for (let i = 1; i <= 6; i++) {
+          const checkDate = new Date(currentShiftDate);
+          checkDate.setDate(checkDate.getDate() - i);
+          const dateStrToCheck = checkDate.toISOString().split('T')[0];
+
+          const workedOnDay = schedule.some(
+            (s) => s.dateStr === dateStrToCheck,
+          );
+          if (workedOnDay) streak++;
+          else break;
+        }
+
+        if (streak >= 6) return false;
+
+        return true;
+      });
+
+      // KROK B: Rozdělení na Standard a Přesčas
+      let bestCandidate: (typeof employees)[0] | null = null;
+
+      const standardCandidates = viableCandidates.filter((emp) => {
+        const currentLoad = workLoad.get(emp.id) || 0;
+        const target = Number(emp.targetHoursPerMonth) || 160;
+        return currentLoad + netDuration <= target;
+      });
+
+      if (standardCandidates.length > 0) {
+        // 1. Zkusíme naplnit základní úvazky (s ohledem na preference)
+        // POUŽITÍ POMOCNÉ FUNKCE:
+        standardCandidates.sort((a, b) => sortCandidates(a, b, shift));
+        bestCandidate = standardCandidates[0];
+      } else if (viableCandidates.length > 0) {
+        // 2. Musíme jít do přesčasů
+        // I TADY chceme zohlednit preference (pokud někdo chce přesčas dobrovolně)
+        // POUŽITÍ POMOCNÉ FUNKCE:
+        viableCandidates.sort((a, b) => sortCandidates(a, b, shift));
+        bestCandidate = viableCandidates[0];
+      }
+
+      // KROK C: Zápis
+      if (bestCandidate) {
+        await this.prisma.shift.update({
+          where: { id: shift.id },
+          data: { assignedUserId: bestCandidate.id },
+        });
+
+        // Aktualizace lokálního stavu
+        const currentL = workLoad.get(bestCandidate.id) || 0;
+        workLoad.set(bestCandidate.id, currentL + netDuration);
+
+        const sched = userSchedules.get(bestCandidate.id) || [];
+        sched.push({
+          start: shiftStart,
+          end: shiftEnd,
+          dateStr: shift.startDatetime.toISOString().split('T')[0],
+        });
+        userSchedules.set(bestCandidate.id, sched);
+
+        assignedResults.push(shift.id);
+      }
+    }
+
+    return {
+      message: `Automaticky přiděleno ${assignedResults.length} z ${shiftsToAssign.length} směn.`,
+      unassignedCount: shiftsToAssign.length - assignedResults.length,
+    };
+  }
+
+  async runAutoAssignmentForGroup(groupId: string) {
+    // 1. Najdeme skupinu (měsíc)
+    const group = await this.prisma.scheduleGroup.findUnique({
+      where: { id: groupId },
+    });
+
+    if (!group) throw new NotFoundException('Rozvrh (skupina) nenalezen.');
+
+    const dateFrom = new Date(group.year, group.month - 1, 1);
+    const dateTo = new Date(group.year, group.month, 0);
+    dateTo.setHours(23, 59, 59, 999);
+
+    // 2. Zavoláme tvou hlavní logiku
+    return this.runAutoAssignment(group.locationId, dateFrom, dateTo);
+  }
 }
+
 // --- 1. SPRÁVA SKUPIN (MĚSÍČNÍCH ROZVRHŮ) ---
 /*
   async createGroup(dto: { name: string; dateFrom: string; dateTo: string }) {
@@ -309,6 +553,7 @@ export class ScheduleService {
     return days;
   }
 
+  /*
   // --- 4. FINÁLNÍ PUBLIKACE ---
 
   async publishFinalSchedule(groupId: string) {

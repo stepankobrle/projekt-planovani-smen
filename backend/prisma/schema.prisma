@@ -236,8 +236,9 @@ enum ScheduleStatus {
 enum ShiftStatus {
   DRAFT
   OFFERED
-  GENERATED     // Algoritmus proběhl, admin ladí
-  PUBLISHED     // Finální verze pro všechny
+  PREFERENCES
+  GENERATED     
+  PUBLISHED     
 }
 
 enum AvailabilityType {

@@ -300,4 +300,80 @@ export class ShiftsService {
 
     return this.prisma.shift.delete({ where: { id } });
   }
+
+  async findShiftsForEmployee(
+    locationId: number,
+    userId: string,
+    year: number,
+    month: number,
+  ) {
+    const userProfile = await this.prisma.profile.findUnique({
+      where: { id: userId },
+      include: { jobPosition: true },
+    });
+
+    if (!userProfile) throw new NotFoundException('Uživatel nenalezen');
+    const userPositionIds = userProfile.jobPosition
+      ? [userProfile.jobPosition.id]
+      : [];
+
+    const rawShifts = await this.prisma.shift.findMany({
+      where: {
+        locationId,
+        // UŽ NEFILTRUJEME PODLE STATUSU, ALE PODLE DATA
+        scheduleGroup: {
+          year: year,
+          month: month,
+        },
+        jobPositionId: { in: userPositionIds },
+      },
+      include: {
+        shiftType: true,
+        jobPosition: true,
+        // Musíme načíst i ScheduleGroup, abychom na FE věděli, jaký má status!
+        scheduleGroup: true,
+        availabilities: {
+          where: { userId: userId },
+        },
+      },
+      orderBy: { startDatetime: 'asc' },
+    });
+
+    const groupedShifts = new Map();
+
+    for (const shift of rawShifts) {
+      const groupKey = `${shift.startDatetime.toISOString()}_${shift.endDatetime.toISOString()}_${shift.jobPositionId}`;
+      const shiftWithRelations = shift as any;
+
+      // Zjistíme status skupiny (DRAFT, PREFERENCES, GENERATED...)
+      const groupStatus = shiftWithRelations.scheduleGroup.status;
+
+      const currentUserType =
+        shiftWithRelations.availabilities &&
+        shiftWithRelations.availabilities.length > 0
+          ? shiftWithRelations.availabilities[0].type
+          : null;
+
+      if (!groupedShifts.has(groupKey)) {
+        groupedShifts.set(groupKey, {
+          displayStart: shift.startDatetime,
+          displayEnd: shift.endDatetime,
+          shiftType: shift.shiftType,
+          jobPosition: shift.jobPosition,
+          count: 0,
+          shiftIds: [],
+          userStatus: currentUserType,
+
+          // DŮLEŽITÉ: Pošleme na frontend info, jestli je tento měsíc zamčený
+          isLocked: groupStatus !== 'PREFERENCES',
+        });
+      }
+
+      const group = groupedShifts.get(groupKey);
+      group.count++;
+      group.shiftIds.push(shift.id);
+    }
+
+    return Array.from(groupedShifts.values());
+  }
 }

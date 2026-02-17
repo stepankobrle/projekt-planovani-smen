@@ -13,6 +13,7 @@ interface UserPayload {
 	fullName?: string;
 	iat?: number;
 	exp?: number;
+	locationId: number;
 }
 
 // 2. Definujeme, co všechno kontext zpřístupní komponentám

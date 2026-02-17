@@ -47,6 +47,12 @@ export const menuItems: MenuItem[] = [
 		roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE],
 	},
 	{
+		title: "Moje preference",
+		href: "/preferences",
+		icon: CalendarDays,
+		roles: [UserRole.EMPLOYEE, UserRole.PART_TIMER],
+	},
+	{
 		title: "Administrace",
 		icon: Settings,
 		roles: [UserRole.ADMIN],

@@ -37,6 +37,7 @@ export default function AdminMonthlySchedulePage() {
 	});
 	const [data, setData] = useState<ScheduleGroup | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [generating, setGenerating] = useState(false); // Stav pro loader generování
 	const [shiftTypes, setShiftTypes] = useState<any[]>([]);
 	const [positions, setPositions] = useState<any[]>([]);
 	const [users, setUsers] = useState<any[]>([]);
@@ -69,9 +70,10 @@ export default function AdminMonthlySchedulePage() {
 		"Prosinec",
 	];
 
+	// Načítání rozvrhu
 	const fetchSchedule = useCallback(async () => {
 		try {
-			setLoading(true);
+			// setLoading(true); // Zde zakomentováno, aby to neproblikávalo při každém refreshi
 			const res = await axios.get(
 				`http://localhost:3001/schedule-groups/find`,
 				{
@@ -93,6 +95,7 @@ export default function AdminMonthlySchedulePage() {
 	}, [params.id, viewDate]);
 
 	useEffect(() => {
+		setLoading(true); // Loading jen při změně data
 		fetchSchedule();
 		const fetchHelpers = async () => {
 			try {
@@ -148,6 +151,49 @@ export default function AdminMonthlySchedulePage() {
 			alert("Chyba při inicializaci.");
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	// --- NOVÁ FUNKCE PRO AUTOMATICKÉ GENEROVÁNÍ ---
+	const handleAutoGenerate = async () => {
+		if (!data?.id) return;
+		const confirm = window.confirm(
+			"Opravdu chcete spustit automatické generování? \n\nTato akce přiřadí zaměstnance na volné směny podle jejich preferencí a zákonných limitů.",
+		);
+		if (!confirm) return;
+
+		try {
+			setGenerating(true);
+			const response = await axios.post(
+				`http://localhost:3001/schedule-groups/${data.id}/auto-assign`,
+				{},
+				{ withCredentials: true },
+			);
+			alert(response.data.message);
+			fetchSchedule(); // Obnovit kalendář
+		} catch (err) {
+			console.error("Chyba generování:", err);
+			alert("Nepodařilo se vygenerovat rozvrh.");
+		} finally {
+			setGenerating(false);
+		}
+	};
+
+	const handleChangeStatus = async (
+		newStatus: "DRAFT" | "PREFERENCES" | "GENERATED" | "PUBLISHED",
+	) => {
+		if (!data?.id) return;
+		if (!confirm(`Opravdu chcete změnit stav rozvrhu na ${newStatus}?`)) return;
+
+		try {
+			await axios.patch(
+				`http://localhost:3001/schedule-groups/${data.id}/status`,
+				{ status: newStatus },
+				{ withCredentials: true },
+			);
+			fetchSchedule();
+		} catch (err) {
+			alert("Nepodařilo se změnit stav rozvrhu.");
 		}
 	};
 
@@ -239,7 +285,7 @@ export default function AdminMonthlySchedulePage() {
 		const activePositionIds = Object.keys(grouped);
 		if (activePositionIds.length === 0) {
 			return (
-				<div className="py-4 text-center text-[10px] font-black uppercase text-slate-300 tracking-widest text-slate-400 opacity-50">
+				<div className="py-4 text-center text-[10px] font-black uppercase text-slate-300 tracking-widest opacity-50">
 					Žádné směny
 				</div>
 			);
@@ -262,7 +308,8 @@ export default function AdminMonthlySchedulePage() {
 							<div
 								key={s.id}
 								onClick={() => handleEditShift(s)}
-								className="bg-slate-300 p-3 rounded-xl min-w-[140px] text-center shadow-sm cursor-pointer hover:bg-indigo-100 hover:scale-105 transition-all">
+								className={`p-3 rounded-xl min-w-[140px] text-center shadow-sm cursor-pointer hover:scale-105 transition-all 
+                                    ${s.assignedUser ? "bg-white border-2 border-indigo-100" : "bg-slate-100 border-2 border-transparent"}`}>
 								<div className="text-[9px] font-black uppercase opacity-60">
 									{new Date(s.startDatetime).toLocaleTimeString("cs-CZ", {
 										hour: "2-digit",
@@ -274,12 +321,9 @@ export default function AdminMonthlySchedulePage() {
 										minute: "2-digit",
 									})}
 								</div>
-								<div className="text-[11px] font-bold truncate">
-									{s.assignedUser?.fullName || (
-										<span className="text-slate-500 font-black opacity-50 uppercase text-[9px]">
-											Volný slot
-										</span>
-									)}
+								<div
+									className={`text-[11px] font-bold truncate ${s.assignedUser ? "text-indigo-600" : "text-slate-400"}`}>
+									{s.assignedUser?.fullName || "VOLNÝ SLOT"}
 								</div>
 							</div>
 						))}
@@ -301,8 +345,7 @@ export default function AdminMonthlySchedulePage() {
 				<button
 					onClick={() => moveMonth(-1)}
 					className="p-3 bg-white rounded-full shadow-sm hover:bg-slate-50 transition-colors">
-					{" "}
-					←{" "}
+					←
 				</button>
 				<div className="bg-white px-12 py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[250px]">
 					<span className="text-2xl font-black uppercase tracking-tighter">
@@ -312,8 +355,7 @@ export default function AdminMonthlySchedulePage() {
 				<button
 					onClick={() => moveMonth(1)}
 					className="p-3 bg-white rounded-full shadow-sm hover:bg-slate-50 transition-colors">
-					{" "}
-					→{" "}
+					→
 				</button>
 			</div>
 
@@ -332,12 +374,100 @@ export default function AdminMonthlySchedulePage() {
 					</div>
 				) : (
 					<div className="space-y-8">
-						<div className="text-center">
-							<button className="px-6 py-2 border-2 border-slate-200 rounded-full text-[10px] font-black uppercase hover:bg-slate-50 transition-all text-slate-600">
-								Otevřít preference
-							</button>
+						{/* --- OVLÁDACÍ PANEL STATUSU --- */}
+						<div className="flex flex-col items-center gap-4 bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+							<div className="flex items-center gap-2">
+								<span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+									Stav rozvrhu:
+								</span>
+								<span
+									className={`px-3 py-1 rounded-full text-[10px] font-black uppercase 
+                                    ${
+																			data.status === "DRAFT"
+																				? "bg-slate-100 text-slate-500"
+																				: data.status === "PREFERENCES"
+																					? "bg-indigo-100 text-indigo-600"
+																					: "bg-green-100 text-green-600"
+																		}`}>
+									{data.status}
+								</span>
+							</div>
+
+							{/* Tlačítka se mění podle stavu */}
+							{data.status === "DRAFT" && (
+								<button
+									onClick={() => handleChangeStatus("PREFERENCES")}
+									className="px-8 py-3 bg-indigo-600 text-white rounded-xl text-[11px] font-black uppercase shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-105">
+									🔓 Otevřít pro preference
+								</button>
+							)}
+
+							{data.status === "PREFERENCES" && (
+								<div className="flex gap-2">
+									<button
+										onClick={() => handleChangeStatus("DRAFT")}
+										className="px-6 py-3 border border-slate-200 text-slate-400 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 transition-all">
+										← Zpět na úpravy
+									</button>
+
+									{/* --- TLAČÍTKO PRO AUTOMATICKÉ GENEROVÁNÍ --- */}
+									<button
+										onClick={handleAutoGenerate}
+										disabled={generating}
+										className={`px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg hover:shadow-xl transition-all flex items-center gap-2 ${generating ? "opacity-70 cursor-not-allowed" : "hover:scale-105"}`}>
+										{generating ? (
+											<>
+												<svg
+													className="animate-spin h-3 w-3 text-white"
+													xmlns="http://www.w3.org/2000/svg"
+													fill="none"
+													viewBox="0 0 24 24">
+													<circle
+														className="opacity-25"
+														cx="12"
+														cy="12"
+														r="10"
+														stroke="currentColor"
+														strokeWidth="4"></circle>
+													<path
+														className="opacity-75"
+														fill="currentColor"
+														d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+												</svg>
+												Generuji...
+											</>
+										) : (
+											<>🤖 Automaticky obsadit</>
+										)}
+									</button>
+
+									<button
+										onClick={() => handleChangeStatus("GENERATED")}
+										className="px-6 py-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-700 transition-all shadow-lg">
+										🔒 Uzavřít a Publikovat
+									</button>
+								</div>
+							)}
+
+							{/* Zobrazit tlačítko i pro GENERATED, kdyby chtěl admin přegenerovat znova */}
+							{data.status === "GENERATED" && (
+								<div className="flex gap-2">
+									<button
+										onClick={handleAutoGenerate}
+										disabled={generating}
+										className="px-6 py-3 border border-blue-200 text-blue-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 transition-all">
+										{generating ? "Generuji..." : "🤖 Znovu přegenerovat"}
+									</button>
+									<button
+										onClick={() => handleChangeStatus("PUBLISHED")}
+										className="px-6 py-3 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-green-700 transition-all shadow-lg">
+										✓ Publikovat zaměstnancům
+									</button>
+								</div>
+							)}
 						</div>
 
+						{/* --- KALENDÁŘ --- */}
 						{data.calendarDays.map((day) => (
 							<div
 								key={day}
@@ -365,7 +495,7 @@ export default function AdminMonthlySchedulePage() {
 											})
 										}
 										className="text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 transition-colors">
-										přidat směnu
+										pridat směnu
 									</button>
 								</div>
 								<div className="p-4 space-y-2">
@@ -377,7 +507,7 @@ export default function AdminMonthlySchedulePage() {
 				)}
 			</div>
 
-			{/* SPOLEČNÝ MODÁL (ADD / EDIT) */}
+			{/* SPOLEČNÝ MODÁL (ADD / EDIT) - Beze změny */}
 			{modal.isOpen && (
 				<div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
 					<div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">

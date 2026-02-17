@@ -7,6 +7,8 @@ import {
   UseGuards,
   Patch,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { CreateScheduleGroupDto } from './dto/create-schedule.dto';
@@ -40,6 +42,19 @@ export class ScheduleController {
   @Roles('ADMIN')
   async initNext(@Body('locationId') locationId: number) {
     return this.scheduleService.createNextMonth(locationId);
+  }
+
+  @Patch(':id/status')
+  @Roles('ADMIN')
+  async updateStatus(@Param('id') id: string, @Body('status') status: string) {
+    console.log(`Měním status skupiny ${id} na ${status}`);
+    return this.scheduleService.updateStatus(id, status);
+  }
+
+  @Post(':groupId/auto-assign')
+  @HttpCode(HttpStatus.OK)
+  async autoAssign(@Param('groupId') groupId: string) {
+    return this.scheduleService.runAutoAssignmentForGroup(groupId);
   }
 
   // Ostatní akce zůstávají (generování, publikování)

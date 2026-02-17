@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   Delete,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ShiftsService } from './shifts.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
@@ -79,5 +80,20 @@ export class ShiftsController {
   @Get('available')
   async getAvailableShifts() {
     return this.shiftsService.findAllDrafts();
+  }
+
+  @Get('open-preferences')
+  async findOpenForPreferences(
+    @Query('locationId', ParseIntPipe) locationId: number,
+    @Query('userId') userId: string,
+    @Query('year', ParseIntPipe) year: number,
+    @Query('month', ParseIntPipe) month: number,
+  ) {
+    return this.shiftsService.findShiftsForEmployee(
+      locationId,
+      userId,
+      year,
+      month,
+    );
   }
 }
