@@ -82,6 +82,8 @@ model Profile {
 
 vacationRequests      VacationRequest[]
   receivedNotifications Notification[] @relation("ReceivedNotifications")
+  offeredShifts     Shift[]        @relation("OfferedShifts")
+  requestedShifts   Shift[]        @relation("RequestedShifts")
 }
 
 
@@ -160,6 +162,11 @@ model Shift {
   scheduleGroup   ScheduleGroup? @relation(fields: [scheduleGroupId], references: [id])
 
   isMarketplace Boolean @default(false)
+offeredById   String?
+  offeredBy     Profile?    @relation("OfferedShifts", fields: [offeredById], references: [id])
+
+  requestedById String?
+  requestedBy   Profile?    @relation("RequestedShifts", fields: [requestedById], references: [id])
 
   jobPositionId      Int
   jobPosition        JobPosition    @relation(fields: [jobPositionId], references: [id])

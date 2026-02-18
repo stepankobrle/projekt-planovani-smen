@@ -5,4 +5,5 @@ export class CreateScheduleGroupDto {
   locationId: number;
   year: number;
   month: number;
+  calendarDays: string[];
 }

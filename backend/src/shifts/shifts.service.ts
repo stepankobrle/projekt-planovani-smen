@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
@@ -375,5 +376,160 @@ export class ShiftsService {
     }
 
     return Array.from(groupedShifts.values());
+  }
+
+  async findAll(params: {
+    assignedUserId?: string;
+    year?: number;
+    month?: number;
+    locationId?: number;
+  }) {
+    const { assignedUserId, year, month, locationId } = params;
+
+    const where: any = {};
+    if (assignedUserId) {
+      where.assignedUserId = assignedUserId;
+    }
+    if (locationId) {
+      where.locationId = Number(locationId);
+    }
+    if (year && month) {
+      const y = Number(year);
+      const m = Number(month);
+      const startDate = new Date(Date.UTC(y, m - 1, 1));
+      const endDate = new Date(Date.UTC(y, m, 0, 23, 59, 59));
+
+      where.startDatetime = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
+    return this.prisma.shift.findMany({
+      where,
+      include: {
+        shiftType: true,
+        jobPosition: true,
+        location: true,
+        assignedUser: true,
+      },
+      orderBy: {
+        startDatetime: 'asc',
+      },
+    });
+  }
+
+  // 1. ZAMĚSTNANEC NABÍZÍ SMĚNU
+  async offerShift(userId: string, shiftId: string) {
+    const shift = await this.prisma.shift.findUnique({
+      where: { id: shiftId },
+    });
+    if (!shift) throw new NotFoundException('Směna nenalezena');
+    if (shift.assignedUserId !== userId) {
+      throw new ForbiddenException('Nemůžete nabídnout cizí směnu.');
+    }
+    if (new Date(shift.startDatetime) < new Date()) {
+      throw new BadRequestException('Nelze nabízet směny, které už proběhly.');
+    }
+    return this.prisma.shift.update({
+      where: { id: shiftId },
+      data: {
+        isMarketplace: true,
+        offeredById: userId,
+        requestedById: null,
+      },
+    });
+  }
+
+  /**
+   * OKAMŽITÉ PŘEVZETÍ SMĚNY (S KONTROLOU KOLIZÍ A ZÁKONA)
+   */
+  async requestShift(requestingUserId: string, shiftId: string) {
+    const targetShift = await this.prisma.shift.findUnique({
+      where: { id: shiftId },
+      include: { jobPosition: true },
+    });
+
+    if (!targetShift) throw new NotFoundException('Směna neexistuje.');
+
+    if (!targetShift.isMarketplace)
+      throw new BadRequestException('Tato směna není k dispozici.');
+    if (targetShift.assignedUserId === requestingUserId)
+      throw new BadRequestException('Už máte tuto směnu.');
+
+    // 2. NAČTENÍ UŽIVATELE (Stačí jednou!)
+    const requestingUser = await this.prisma.profile.findUnique({
+      where: { id: requestingUserId },
+      include: { jobPosition: true },
+    });
+
+    if (!requestingUser) throw new NotFoundException('Uživatel nenalezen.');
+
+    // 3. KONTROLA KVALIFIKACE (POZICE)
+    if (requestingUser.jobPositionId !== targetShift.jobPositionId) {
+      throw new BadRequestException(
+        `Chyba: Nemáte kvalifikaci. Vy jste '${requestingUser.jobPosition?.name}', směna je pro '${targetShift.jobPosition?.name}'.`,
+      );
+    }
+
+    console.log('Všechny kontroly OK. Provádím update v DB...');
+
+    const newStart = new Date(targetShift.startDatetime);
+    const newEnd = new Date(targetShift.endDatetime);
+    const shiftDuration = (newEnd.getTime() - newStart.getTime()) / 36e5;
+
+    if (shiftDuration > 12) {
+      throw new BadRequestException(
+        `Směna je delší než 12 hodin (Zákoník práce § 83).`,
+      );
+    }
+    const checkStart = new Date(newStart);
+    checkStart.setDate(checkStart.getDate() - 2);
+    const checkEnd = new Date(newEnd);
+    checkEnd.setDate(checkEnd.getDate() + 2);
+
+    const userShifts = await this.prisma.shift.findMany({
+      where: {
+        assignedUserId: requestingUserId,
+        startDatetime: { gte: checkStart },
+        endDatetime: { lte: checkEnd },
+        id: { not: shiftId },
+      },
+      orderBy: { startDatetime: 'asc' },
+    });
+
+    for (const s of userShifts) {
+      const sStart = new Date(s.startDatetime);
+      const sEnd = new Date(s.endDatetime);
+      if (newStart < sEnd && newEnd > sStart) {
+        throw new BadRequestException(
+          `Kolize! V tuto dobu už máte směnu (${sStart.toLocaleTimeString()} - ${sEnd.toLocaleTimeString()}).`,
+        );
+      }
+      if (sEnd <= newStart) {
+        const diffHours = (newStart.getTime() - sEnd.getTime()) / 36e5;
+        if (diffHours < 11) {
+          throw new BadRequestException(
+            `Porušení odpočinku! Mezi koncem předchozí směny a touto je jen ${diffHours.toFixed(1)}h (min. 11h).`,
+          );
+        }
+      }
+      if (sStart >= newEnd) {
+        const diffHours = (sStart.getTime() - newEnd.getTime()) / 36e5;
+        if (diffHours < 11) {
+          throw new BadRequestException(
+            `Porušení odpočinku! Po této směně by následovala další už za ${diffHours.toFixed(1)}h (min. 11h).`,
+          );
+        }
+      }
+    }
+    return this.prisma.shift.update({
+      where: { id: shiftId },
+      data: {
+        assignedUserId: requestingUserId,
+        isMarketplace: false,
+        offeredById: null,
+        requestedById: null,
+      },
+    });
   }
 }

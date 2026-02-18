@@ -9,6 +9,7 @@ import {
   UseGuards,
   Delete,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { ShiftsService } from './shifts.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
@@ -95,5 +96,32 @@ export class ShiftsController {
       year,
       month,
     );
+  }
+
+  @Get()
+  async findAll(
+    @Query('assignedUserId') assignedUserId?: string,
+    @Query('year') year?: number,
+    @Query('month') month?: number,
+    @Query('locationId') locationId?: number,
+  ) {
+    return this.shiftsService.findAll({
+      assignedUserId,
+      year,
+      month,
+      locationId,
+    });
+  }
+
+  // 1. Nabídnout směnu (Zaměstnanec -> Burza)
+  @Patch(':id/offer')
+  async offerShift(@Param('id') id: string, @Req() req) {
+    return this.shiftsService.offerShift(req.user.id, id);
+  }
+
+  // 2. Vzít si směnu (Kolega -> Zaměstnanec)
+  @Patch(':id/take')
+  async takeShift(@Param('id') id: string, @Req() req) {
+    return this.shiftsService.requestShift(req.user.id, id);
   }
 }
