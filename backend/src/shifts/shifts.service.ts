@@ -386,7 +386,7 @@ export class ShiftsService {
   }) {
     const { assignedUserId, year, month, locationId } = params;
 
-    const where: any = {};
+    const where: any = { status: 'PUBLISHED' };
     if (assignedUserId) {
       where.assignedUserId = assignedUserId;
     }

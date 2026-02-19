@@ -80,13 +80,20 @@ export class ScheduleService {
   }
 
   async updateStatus(id: string, status: string) {
-    return this.prisma.scheduleGroup.update({
-      where: { id },
-      data: {
-        // Přetypujeme string na Enum, aby si Prisma nestěžovala
-        status: status as ScheduleStatus,
-      },
-    });
+    return this.prisma.$transaction([
+      this.prisma.scheduleGroup.update({
+        where: { id },
+        data: {
+          status: status as ScheduleStatus,
+        },
+      }),
+      this.prisma.shift.updateMany({
+        where: { scheduleGroupId: id },
+        data: {
+          status: status as ShiftStatus,
+        },
+      }),
+    ]);
   }
 
   // AUTOMATICKÉ PŘIŘAZENÍ
