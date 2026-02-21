@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useAuth } from "@/app/components/ProtectedRoute";
 
 // --- UPDATED INTERFACE ---
@@ -56,13 +56,12 @@ export default function EmployeeSchedulePage() {
 		if (!user) return;
 		try {
 			setLoading(true);
-			const res = await axios.get(`http://localhost:3001/shifts`, {
+			const res = await api.get("/shifts", {
 				params: {
 					year: viewDate.year,
 					month: viewDate.month,
 					locationId: user.locationId,
 				},
-				withCredentials: true,
 			});
 			setAllShifts(res.data);
 		} catch (err) {
@@ -81,11 +80,7 @@ export default function EmployeeSchedulePage() {
 		if (!confirm("Opravdu chcete nabídnout tuto směnu na burze?")) return;
 
 		try {
-			await axios.patch(
-				`http://localhost:3001/shifts/${shiftId}/offer`,
-				{},
-				{ withCredentials: true },
-			);
+			await api.patch(`/shifts/${shiftId}/offer`, {});
 			alert("Směna byla nabídnuta kolegům.");
 			fetchShifts(); // Refresh dat
 		} catch (err: any) {
@@ -98,11 +93,7 @@ export default function EmployeeSchedulePage() {
 		if (!confirm("Opravdu si chcete vzít tuto směnu?")) return;
 
 		try {
-			await axios.patch(
-				`http://localhost:3001/shifts/${shiftId}/take`,
-				{},
-				{ withCredentials: true },
-			);
+			await api.patch(`/shifts/${shiftId}/take`, {});
 			alert("Směna je vaše!");
 			fetchShifts(); // Refresh dat
 		} catch (err: any) {

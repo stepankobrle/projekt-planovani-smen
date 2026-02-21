@@ -31,25 +31,30 @@ export class VacationsController {
     return this.vacationsService.findMyRequests(req.user.id);
   }
 
-  // Admin: Zobrazit všechny žádosti (tady bys měl filtrovat podle locationId admina)
-  // Pro jednoduchost zatím vracíme všechny, nebo můžeš poslat locationId v query
+  // Admin: Zobrazit žádosti v lokaci — ověřuje, že locationId patří adminovi
   @Get('location/:locationId')
   @Roles('ADMIN', 'MANAGER')
-  findAllByLocation(@Param('locationId') locationId: string) {
-    return this.vacationsService.findAllInLocation(+locationId);
+  findAllByLocation(
+    @Param('locationId') locationId: string,
+    @Request() req,
+  ) {
+    const adminId = req.user.sub || req.user.userId || req.user.id;
+    return this.vacationsService.findAllInLocation(+locationId, adminId);
   }
 
   // Admin: Schválit
   @Patch(':id/approve')
   @Roles('ADMIN', 'MANAGER')
-  approve(@Param('id') id: string) {
-    return this.vacationsService.updateStatus(id, 'APPROVED');
+  approve(@Param('id') id: string, @Request() req) {
+    const adminId = req.user.sub || req.user.userId || req.user.id;
+    return this.vacationsService.updateStatus(id, 'APPROVED', adminId);
   }
 
   // Admin: Zamítnout
   @Patch(':id/reject')
   @Roles('ADMIN', 'MANAGER')
-  reject(@Param('id') id: string) {
-    return this.vacationsService.updateStatus(id, 'REJECTED');
+  reject(@Param('id') id: string, @Request() req) {
+    const adminId = req.user.sub || req.user.userId || req.user.id;
+    return this.vacationsService.updateStatus(id, 'REJECTED', adminId);
   }
 }

@@ -1,17 +1,18 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InviteUserDto } from './dto/invite-user.dto';
 import * as crypto from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer';
-import { PrismaService } from '../prisma.service'; // <-- ZKONTROLUJ CESTU K TVÉMU PRISMA SERVICE
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class UsersService {
-  // --- TADY BYL PROBLÉM: Chyběl konstruktor ---
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailerService: MailerService,
+    private readonly config: ConfigService,
   ) {}
 
   async inviteUser(dto: InviteUserDto, adminId: string) {
@@ -69,7 +70,8 @@ export class UsersService {
     }
 
     // Odeslání emailu
-    const invitationLink = `http://localhost:3000/set-password?token=${token}`;
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+    const invitationLink = `${frontendUrl}/set-password?token=${token}`;
 
     await this.mailerService.sendMail({
       to: dto.email,
@@ -117,7 +119,30 @@ export class UsersService {
     });
   }
 
-  async findOne(id: string) {
+  private async getAdminLocationId(adminId: string): Promise<number> {
+    const admin = await this.prisma.profile.findUnique({
+      where: { id: adminId },
+      select: { locationId: true },
+    });
+    if (!admin?.locationId) {
+      throw new ForbiddenException('Nepodařilo se ověřit přístup.');
+    }
+    return admin.locationId;
+  }
+
+  private async verifyUserAccess(targetUserId: string, adminLocationId: number): Promise<void> {
+    const target = await this.prisma.profile.findUnique({
+      where: { id: targetUserId },
+      select: { locationId: true },
+    });
+    if (!target || target.locationId !== adminLocationId) {
+      throw new ForbiddenException('Nemáte přístup k tomuto uživateli.');
+    }
+  }
+
+  async findOne(id: string, adminId: string) {
+    const adminLocationId = await this.getAdminLocationId(adminId);
+    await this.verifyUserAccess(id, adminLocationId);
     return this.prisma.profile.findUnique({
       where: { id },
       include: { jobPosition: true },
@@ -214,7 +239,9 @@ export class UsersService {
   }
 
   // --- ÚPRAVA UŽIVATELE ---
-  async update(id: string | number, dto: UpdateUserDto) {
+  async update(id: string | number, dto: UpdateUserDto, adminId: string) {
+    const adminLocationId = await this.getAdminLocationId(adminId);
+    await this.verifyUserAccess(String(id), adminLocationId);
     return this.prisma.profile.update({
       where: { id: String(id) },
       data: {
@@ -229,7 +256,9 @@ export class UsersService {
   }
 
   // --- SMAZÁNÍ (DEAKTIVACE) UŽIVATELE ---
-  async remove(id: string | number) {
+  async remove(id: string | number, adminId: string) {
+    const adminLocationId = await this.getAdminLocationId(adminId);
+    await this.verifyUserAccess(String(id), adminLocationId);
     return this.prisma.profile.update({
       where: { id: String(id) },
       data: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
 	Lock,
@@ -17,6 +17,13 @@ function SetPasswordForm() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const token = searchParams.get("token");
+
+	// Odstraní token z URL co nejdříve — zabrání uložení v historii prohlížeče
+	useEffect(() => {
+		if (token) {
+			router.replace("/set-password", { scroll: false });
+		}
+	}, []);
 
 	const [formData, setFormData] = useState({
 		password: "",
@@ -46,9 +53,10 @@ function SetPasswordForm() {
 		setLoading(true);
 
 		try {
-			const res = await fetch("http://localhost:3001/auth/activate", {
+			const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"}/auth/activate`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
+				referrerPolicy: "no-referrer",
 				body: JSON.stringify({ token, password: formData.password }),
 			});
 

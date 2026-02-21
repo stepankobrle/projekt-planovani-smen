@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import Link from "next/link";
 import { useAuth } from "@/app/components/ProtectedRoute";
 
@@ -26,9 +26,7 @@ export default function UnifiedSchedulePage() {
 
 	const fetchGroups = useCallback(async () => {
 		try {
-			const res = await axios.get("http://localhost:3001/schedule-groups", {
-				withCredentials: true,
-			});
+			const res = await api.get("/schedule-groups");
 			setGroups(res.data);
 			setLoading(false);
 		} catch (err) {
@@ -44,15 +42,11 @@ export default function UnifiedSchedulePage() {
 	const handleCreate = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
-			await axios.post(
-				"http://localhost:3001/schedule-groups",
-				{
-					name: newName,
-					dateFrom: new Date(newDateFrom).toISOString(),
-					dateTo: new Date(newDateTo).toISOString(),
-				},
-				{ withCredentials: true },
-			);
+			await api.post("/schedule-groups", {
+				name: newName,
+				dateFrom: new Date(newDateFrom).toISOString(),
+				dateTo: new Date(newDateTo).toISOString(),
+			});
 			setIsModalOpen(false);
 			fetchGroups(); // Refresh
 		} catch (err: any) {

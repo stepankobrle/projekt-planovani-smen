@@ -12,17 +12,8 @@ import {
 	ShieldAlert,
 } from "lucide-react";
 import ProtectedRoute, { useAuth } from "@/app/components/ProtectedRoute";
-import axios from "axios";
-import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
-
-// --- KONFIGURACE AXIOS ---
-const api = axios.create({ baseURL: "http://localhost:3001" });
-api.interceptors.request.use((config) => {
-	const token = Cookies.get("token");
-	if (token) config.headers.Authorization = `Bearer ${token}`;
-	return config;
-});
+import api from "@/lib/api";
 
 interface JobPosition {
 	id: number;

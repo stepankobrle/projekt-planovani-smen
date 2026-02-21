@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/ProtectedRoute";
 
@@ -74,17 +74,13 @@ export default function AdminMonthlySchedulePage() {
 	const fetchSchedule = useCallback(async () => {
 		try {
 			// setLoading(true); // Zde zakomentováno, aby to neproblikávalo při každém refreshi
-			const res = await axios.get(
-				`http://localhost:3001/schedule-groups/find`,
-				{
-					params: {
-						locationId: params.id,
-						year: viewDate.year,
-						month: viewDate.month,
-					},
-					withCredentials: true,
+			const res = await api.get("/schedule-groups/find", {
+				params: {
+					locationId: params.id,
+					year: viewDate.year,
+					month: viewDate.month,
 				},
-			);
+			});
 			setData(res.data);
 		} catch (err) {
 			console.error("Chyba při načítání rozvrhu:", err);
@@ -100,16 +96,9 @@ export default function AdminMonthlySchedulePage() {
 		const fetchHelpers = async () => {
 			try {
 				const [resTypes, resPos, resUsers] = await Promise.all([
-					axios.get(`http://localhost:3001/shift-types`, {
-						withCredentials: true,
-					}),
-					axios.get(`http://localhost:3001/job-positions`, {
-						withCredentials: true,
-					}),
-					axios.get(
-						`http://localhost:3001/shifts/available-employees/${params.id}`,
-						{ withCredentials: true },
-					),
+					api.get("/shift-types"),
+					api.get("/job-positions"),
+					api.get(`/shifts/available-employees/${params.id}`),
 				]);
 				setShiftTypes(resTypes.data);
 				setPositions(resPos.data);
@@ -140,11 +129,9 @@ export default function AdminMonthlySchedulePage() {
 	const handleInitMonth = async () => {
 		try {
 			setLoading(true);
-			const res = await axios.post(
-				`http://localhost:3001/schedule-groups/init-next`,
-				{ locationId: Number(params.id) },
-				{ withCredentials: true },
-			);
+			const res = await api.post("/schedule-groups/init-next", {
+				locationId: Number(params.id),
+			});
 			setViewDate({ year: res.data.year, month: res.data.month });
 			setTimeout(() => fetchSchedule(), 100);
 		} catch (err) {
@@ -164,11 +151,7 @@ export default function AdminMonthlySchedulePage() {
 
 		try {
 			setGenerating(true);
-			const response = await axios.post(
-				`http://localhost:3001/schedule-groups/${data.id}/auto-assign`,
-				{},
-				{ withCredentials: true },
-			);
+			const response = await api.post(`/schedule-groups/${data.id}/auto-assign`, {});
 			alert(response.data.message);
 			fetchSchedule(); // Obnovit kalendář
 		} catch (err) {
@@ -186,11 +169,7 @@ export default function AdminMonthlySchedulePage() {
 		if (!confirm(`Opravdu chcete změnit stav rozvrhu na ${newStatus}?`)) return;
 
 		try {
-			await axios.patch(
-				`http://localhost:3001/schedule-groups/${data.id}/status`,
-				{ status: newStatus },
-				{ withCredentials: true },
-			);
+			await api.patch(`/schedule-groups/${data.id}/status`, { status: newStatus });
 			fetchSchedule();
 		} catch (err) {
 			alert("Nepodařilo se změnit stav rozvrhu.");
@@ -227,9 +206,7 @@ export default function AdminMonthlySchedulePage() {
 		if (!confirm("Opravdu chcete tuto směnu smazat?")) return;
 
 		try {
-			await axios.delete(`http://localhost:3001/shifts/${modal.editId}`, {
-				withCredentials: true,
-			});
+			await api.delete(`/shifts/${modal.editId}`);
 			setModal({ ...modal, isOpen: false });
 			fetchSchedule();
 		} catch (err) {
@@ -254,15 +231,9 @@ export default function AdminMonthlySchedulePage() {
 			};
 
 			if (modal.editId) {
-				await axios.patch(
-					`http://localhost:3001/shifts/${modal.editId}`,
-					payload,
-					{ withCredentials: true },
-				);
+				await api.patch(`/shifts/${modal.editId}`, payload);
 			} else {
-				await axios.post(`http://localhost:3001/shifts`, payload, {
-					withCredentials: true,
-				});
+				await api.post("/shifts", payload);
 			}
 
 			setModal({ ...modal, isOpen: false });

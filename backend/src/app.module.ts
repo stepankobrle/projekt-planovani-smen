@@ -3,8 +3,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './prisma.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ShiftsModule } from './shifts/shifts.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { ScheduleModule } from './schedule/schedule.module';
@@ -20,19 +21,29 @@ import { VacationsModule } from './vacations/vacations.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'auth',
+        ttl: 60000,  // 60 sekund
+        limit: 10,   // max 10 pokusů za minutu
+      },
+    ]),
     AuthModule,
-    MailerModule.forRoot({
-      transport: {
-        host: 'sandbox.smtp.mailtrap.io',
-        port: 2525,
-        auth: {
-          user: 'c35aa3a19ffaed',
-          pass: '14e2c20cb0b65a',
+    MailerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        transport: {
+          host: config.get<string>('MAILTRAP_HOST'),
+          port: config.get<number>('MAILTRAP_PORT'),
+          auth: {
+            user: config.get<string>('MAILTRAP_USER'),
+            pass: config.get<string>('MAILTRAP_PASS'),
+          },
         },
-      },
-      defaults: {
-        from: '"Plánování směn" <no-reply@mojeapp.cz>',
-      },
+        defaults: {
+          from: '"Plánování směn" <no-reply@mojeapp.cz>',
+        },
+      }),
     }),
     ShiftsModule,
     AvailabilityModule,

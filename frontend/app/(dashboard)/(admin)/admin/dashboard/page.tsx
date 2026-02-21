@@ -12,16 +12,8 @@ import {
 	CalendarDays,
 	UserCheck,
 } from "lucide-react";
-import axios from "axios";
-import Cookies from "js-cookie";
+import api from "@/lib/api";
 import { useAuth } from "@/app/components/ProtectedRoute";
-
-const api = axios.create({ baseURL: "http://localhost:3001" });
-api.interceptors.request.use((config) => {
-	const token = Cookies.get("token");
-	if (token) config.headers.Authorization = `Bearer ${token}`;
-	return config;
-});
 
 // --- TYPY ---
 interface ShiftUser {

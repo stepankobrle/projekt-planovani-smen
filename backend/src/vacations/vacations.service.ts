@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { NotificationsService } from '../notifications/notifications.service'; // <---
 import { CreateVacationDto } from './dto/create-vacation.dto';
@@ -55,8 +55,25 @@ export class VacationsService {
     return request;
   }
 
-  // Admin: Schválení/Zamítnutí
-  async updateStatus(id: string, status: 'APPROVED' | 'REJECTED') {
+  private async getAdminLocationId(adminId: string): Promise<number> {
+    const admin = await this.prisma.profile.findUnique({
+      where: { id: adminId },
+      select: { locationId: true },
+    });
+    if (!admin?.locationId) throw new ForbiddenException('Nepodařilo se ověřit přístup.');
+    return admin.locationId;
+  }
+
+  // Admin: Schválení/Zamítnutí — ověří, že žádost patří do adminovy lokace
+  async updateStatus(id: string, status: 'APPROVED' | 'REJECTED', adminId: string) {
+    const adminLocationId = await this.getAdminLocationId(adminId);
+    const request = await this.prisma.vacationRequest.findUnique({
+      where: { id },
+      include: { user: { select: { locationId: true } } },
+    });
+    if (!request || request.user.locationId !== adminLocationId) {
+      throw new ForbiddenException('Nemáte přístup k této žádosti.');
+    }
     return this.prisma.vacationRequest.update({
       where: { id },
       data: { status },
@@ -71,8 +88,12 @@ export class VacationsService {
     });
   }
 
-  // Admin: Všechny žádosti v mé lokaci (nebo globálně)
-  async findAllInLocation(locationId: number) {
+  // Admin: Všechny žádosti v lokaci — ověří, že admin má přístup k dané lokaci
+  async findAllInLocation(locationId: number, adminId: string) {
+    const adminLocationId = await this.getAdminLocationId(adminId);
+    if (locationId !== adminLocationId) {
+      throw new ForbiddenException('Nemáte přístup k této lokaci.');
+    }
     return this.prisma.vacationRequest.findMany({
       where: { user: { locationId } },
       include: { user: true },

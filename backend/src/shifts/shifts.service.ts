@@ -522,14 +522,21 @@ export class ShiftsService {
         }
       }
     }
-    return this.prisma.shift.update({
-      where: { id: shiftId },
-      data: {
-        assignedUserId: requestingUserId,
-        isMarketplace: false,
-        offeredById: null,
-        requestedById: null,
-      },
+    // Transakce zajistí, že dva simultánní požadavky nemohou přiřadit stejnou směnu dvěma lidem
+    return this.prisma.$transaction(async (tx) => {
+      const freshShift = await tx.shift.findUnique({ where: { id: shiftId } });
+      if (!freshShift?.isMarketplace) {
+        throw new BadRequestException('Tato směna již není k dispozici.');
+      }
+      return tx.shift.update({
+        where: { id: shiftId },
+        data: {
+          assignedUserId: requestingUserId,
+          isMarketplace: false,
+          offeredById: null,
+          requestedById: null,
+        },
+      });
     });
   }
 }

@@ -63,21 +63,24 @@ export class UsersController {
 
   @Get(':id')
   @Roles('ADMIN', 'MANAGER')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  findOne(@Param('id') id: string, @Request() req) {
+    const adminId = req.user.sub || req.user.userId || req.user.id;
+    return this.usersService.findOne(id, adminId);
   }
 
   // --- PATCH: ÚPRAVA UŽIVATELE ---
   @Patch(':id')
   @Roles('ADMIN', 'MANAGER') // Upravovat může Admin a Manažer
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @Request() req) {
+    const adminId = req.user.sub || req.user.userId || req.user.id;
+    return this.usersService.update(id, dto, adminId);
   }
 
   // --- DELETE: DEAKTIVACE UŽIVATELE ---
   @Delete(':id')
   @Roles('ADMIN') // Mazat může jen ADMIN
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  remove(@Param('id') id: string, @Request() req) {
+    const adminId = req.user.sub || req.user.userId || req.user.id;
+    return this.usersService.remove(id, adminId);
   }
 }

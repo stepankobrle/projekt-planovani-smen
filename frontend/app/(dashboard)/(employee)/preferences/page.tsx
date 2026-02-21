@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useAuth } from "@/app/components/ProtectedRoute";
 
 interface GroupedShift {
@@ -66,18 +66,14 @@ export default function EmployeePreferencesPage() {
 				setLoading(true);
 			}
 			const locationId = user.locationId || 1;
-			const res = await axios.get(
-				`http://localhost:3001/shifts/open-preferences`,
-				{
-					params: {
-						locationId,
-						userId: user.id,
-						year: viewDate.year,
-						month: viewDate.month,
-					},
-					withCredentials: true,
+			const res = await api.get("/shifts/open-preferences", {
+				params: {
+					locationId,
+					userId: user.id,
+					year: viewDate.year,
+					month: viewDate.month,
 				},
-			);
+			});
 			setShifts(res.data);
 		} catch (err) {
 			console.error("Chyba při načítání směn", err);
@@ -107,11 +103,7 @@ export default function EmployeePreferencesPage() {
 		try {
 			await Promise.all(
 				shiftIds.map((shiftId) =>
-					axios.post(
-						`http://localhost:3001/availability`,
-						{ shiftId, userId: user?.id, type },
-						{ withCredentials: true },
-					),
+					api.post("/availability", { shiftId, userId: user?.id, type }),
 				),
 			);
 		} catch (err: any) {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 
 interface VacationRequest {
 	id: string;
@@ -40,9 +40,7 @@ export default function VacationsPage() {
 
 	const fetchRequests = async () => {
 		try {
-			const res = await axios.get("http://localhost:3001/vacations/my", {
-				withCredentials: true,
-			});
+			const res = await api.get("/vacations/my");
 			setRequests(res.data);
 		} catch (err) {
 			console.error("Chyba při načítání žádostí:", err);
@@ -62,15 +60,11 @@ export default function VacationsPage() {
 		setSubmitting(true);
 
 		try {
-			await axios.post(
-				"http://localhost:3001/vacations",
-				{
-					startDate: form.startDate,
-					endDate: form.endDate,
-					note: form.note || undefined,
-				},
-				{ withCredentials: true },
-			);
+			await api.post("/vacations", {
+				startDate: form.startDate,
+				endDate: form.endDate,
+				note: form.note || undefined,
+			});
 			setSuccess("Žádost o dovolenou byla odeslána.");
 			setForm({ startDate: "", endDate: "", note: "" });
 			fetchRequests();
