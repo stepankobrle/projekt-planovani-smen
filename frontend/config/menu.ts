@@ -1,5 +1,4 @@
-import { LayoutDashboard, Users, CalendarDays, Settings } from "lucide-react";
-import { title } from "process";
+import { LayoutDashboard, Users, CalendarDays, Settings, Plane } from "lucide-react";
 
 export enum UserRole {
 	ADMIN = "ADMIN",
@@ -19,9 +18,15 @@ export interface MenuItem {
 export const menuItems: MenuItem[] = [
 	{
 		title: "Dashboard",
+		href: "/admin/dashboard",
+		icon: LayoutDashboard,
+		roles: [UserRole.ADMIN, UserRole.MANAGER],
+	},
+	{
+		title: "Dashboard",
 		href: "/dashboard",
 		icon: LayoutDashboard,
-		roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE],
+		roles: [UserRole.EMPLOYEE, UserRole.PART_TIMER],
 	},
 	{
 		title: "Správa",
@@ -30,32 +35,44 @@ export const menuItems: MenuItem[] = [
 		items: [
 			{
 				title: "Zaměstnanci",
-				href: "/employees",
+				href: "/admin/employees",
 				roles: [UserRole.ADMIN],
 			},
 			{
 				title: "Pracovní pozice",
-				href: "/job-positions",
+				href: "/admin/job-positions",
 				roles: [UserRole.ADMIN, UserRole.MANAGER],
 			},
 		],
 	},
 	{
 		title: "Rozvrhy",
-		href: "/schedule/1",
+		href: "/admin/schedule/1",
 		icon: CalendarDays,
 		roles: [UserRole.ADMIN, UserRole.MANAGER],
 	},
 	{
+		title: "Dovolené",
+		href: "/admin/vacations",
+		icon: Plane,
+		roles: [UserRole.ADMIN, UserRole.MANAGER],
+	},
+	{
 		title: "Moje směny",
-		href: "/employee/schedule",
+		href: "/schedule",
 		icon: CalendarDays,
 		roles: [UserRole.EMPLOYEE],
 	},
 	{
 		title: "Moje preference",
-		href: "/employee/preferences",
+		href: "/preferences",
 		icon: CalendarDays,
+		roles: [UserRole.EMPLOYEE, UserRole.PART_TIMER],
+	},
+	{
+		title: "Dovolená",
+		href: "/vacations",
+		icon: Plane,
 		roles: [UserRole.EMPLOYEE, UserRole.PART_TIMER],
 	},
 	{
@@ -65,12 +82,12 @@ export const menuItems: MenuItem[] = [
 		items: [
 			{
 				title: "Směny",
-				href: "/shift-types",
+				href: "/admin/shift-types",
 				roles: [UserRole.ADMIN],
 			},
 			{
 				title: "Nastavení směn",
-				href: "/settings",
+				href: "/admin/settings",
 				roles: [UserRole.ADMIN],
 			},
 		],

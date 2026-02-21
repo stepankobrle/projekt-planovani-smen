@@ -128,6 +128,18 @@ export class ScheduleService {
         startDatetime: { gte: lookBackDate, lte: dateTo }, // <--- Tady je ta změna pro historii
       },
     });
+
+    // Načteme schválené dovolené pro celé přiřazované období (jeden dotaz před cyklem)
+    const approvedVacations = await this.prisma.vacationRequest.findMany({
+      where: {
+        status: 'APPROVED',
+        user: { locationId },
+        startDate: { lte: dateTo },
+        endDate: { gte: dateFrom },
+      },
+      select: { userId: true, startDate: true, endDate: true },
+    });
+
     const workLoad = new Map<string, number>();
     const userSchedules = new Map<
       string,
@@ -258,6 +270,17 @@ export class ScheduleService {
         }
 
         if (streak >= 6) return false;
+
+        // E. Schválená dovolená — směna překrývá období dovolené
+        const onVacation = approvedVacations.some((v) => {
+          if (v.userId !== emp.id) return false;
+          const vacStart = new Date(v.startDate);
+          vacStart.setHours(0, 0, 0, 0);
+          const vacEnd = new Date(v.endDate);
+          vacEnd.setHours(23, 59, 59, 999);
+          return shiftStart < vacEnd.getTime() && shiftEnd > vacStart.getTime();
+        });
+        if (onVacation) return false;
 
         return true;
       });

@@ -36,8 +36,13 @@ export default function LoginPage() {
 					Cookies.set("role", data.user.role, { expires: 1 });
 				}
 
-				// 3. Přesměrování na dashboard nebo přímo na rozvrhy
-				router.push("/dashboard");
+				// 3. Přesměrování podle role
+				const role = data.user?.role;
+				if (role === "ADMIN" || role === "MANAGER") {
+					router.push("/admin/dashboard");
+				} else {
+					router.push("/dashboard");
+				}
 				router.refresh(); // Vynutí refresh, aby layout načetl nové cookies
 			} else {
 				setError(data.message || "Neplatné přihlašovací údaje");

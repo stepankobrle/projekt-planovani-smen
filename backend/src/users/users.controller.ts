@@ -9,6 +9,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { InviteUserDto } from './dto/invite-user.dto';
@@ -41,6 +42,29 @@ export class UsersController {
     const currentUserId = req.user.sub || req.user.userId || req.user.id;
 
     return this.usersService.findAll(currentUserId);
+  }
+
+  // Musí být před @Get(':id') aby "stats" nebylo zachyceno jako :id
+  @Get('stats')
+  @Roles('ADMIN', 'MANAGER')
+  getStats(
+    @Request() req,
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+  ) {
+    const adminId = req.user.sub || req.user.userId || req.user.id;
+    const now = new Date();
+    return this.usersService.getStats(
+      adminId,
+      year ? Number(year) : now.getFullYear(),
+      month ? Number(month) : now.getMonth() + 1,
+    );
+  }
+
+  @Get(':id')
+  @Roles('ADMIN', 'MANAGER')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
   }
 
   // --- PATCH: ÚPRAVA UŽIVATELE ---

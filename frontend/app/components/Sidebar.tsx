@@ -2,18 +2,19 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
 	ChevronDown,
 	ChevronRight,
 	Menu,
 	X,
-	ChevronLeft,
 	PanelLeftClose,
 	PanelLeftOpen,
+	LogOut,
 } from "lucide-react";
 import { menuItems, UserRole } from "@/config/menu";
 import { cn } from "@/lib/utils";
+import Cookies from "js-cookie";
 
 interface SidebarProps {
 	userRole: UserRole;
@@ -21,15 +22,21 @@ interface SidebarProps {
 
 export default function Sidebar({ userRole }: SidebarProps) {
 	const pathname = usePathname();
+	const router = useRouter();
 	const [openMenus, setOpenMenus] = useState<string[]>([]);
-	const [isCollapsed, setIsCollapsed] = useState(false); // Pro desktop
-	const [isMobileOpen, setIsMobileOpen] = useState(false); // Pro mobil
+	const [isCollapsed, setIsCollapsed] = useState(false);
+	const [isMobileOpen, setIsMobileOpen] = useState(false);
 
 	const toggleMenu = (title: string) => {
-		if (isCollapsed) setIsCollapsed(false); // Automaticky otevřít při kliku na podmenu
+		if (isCollapsed) setIsCollapsed(false);
 		setOpenMenus((prev) =>
 			prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title],
 		);
+	};
+
+	const handleLogout = () => {
+		Cookies.remove("token");
+		router.push("/login");
 	};
 
 	const filteredMenu = menuItems.filter((item) =>
@@ -38,14 +45,14 @@ export default function Sidebar({ userRole }: SidebarProps) {
 
 	return (
 		<>
-			{/* MOBILNÍ HAMBURGER TLAČÍTKO - Viditelné jen na mobilu */}
+			{/* MOBILNÍ HAMBURGER TLAČÍTKO */}
 			<button
 				onClick={() => setIsMobileOpen(!isMobileOpen)}
 				className="fixed top-4 left-4 z-50 rounded-md bg-slate-900 p-2 text-white lg:hidden">
 				{isMobileOpen ? <X size={20} /> : <Menu size={20} />}
 			</button>
 
-			{/* OVERLAY PRO MOBIL - Ztmaví pozadí, když je menu otevřené */}
+			{/* OVERLAY PRO MOBIL */}
 			{isMobileOpen && (
 				<div
 					className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -57,9 +64,9 @@ export default function Sidebar({ userRole }: SidebarProps) {
 			<div
 				className={cn(
 					"fixed inset-y-0 left-0 z-40 flex flex-col bg-slate-900 text-slate-300 border-r border-slate-800 transition-all duration-300",
-					isCollapsed ? "w-20" : "w-64", // Šířka na desktopu
-					isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", // Schování na mobilu
-					"lg:relative lg:z-0", // Na desktopu se chová jako běžný blok
+					isCollapsed ? "w-20" : "w-64",
+					isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+					"lg:relative lg:z-0",
 				)}>
 				{/* LOGO SEKCE */}
 				<div
@@ -118,7 +125,6 @@ export default function Sidebar({ userRole }: SidebarProps) {
 											)}
 										</button>
 
-										{/* SUBMENU - Skryté, pokud je sidebar zmenšený a není otevřený */}
 										{!isCollapsed && isMenuOpen && (
 											<div className="mt-1 ml-9 space-y-1 border-l border-slate-700 pl-2">
 												{item
@@ -127,7 +133,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 														<Link
 															key={sub.href}
 															href={sub.href}
-															onClick={() => setIsMobileOpen(false)} // Zavřít na mobilu po kliku
+															onClick={() => setIsMobileOpen(false)}
 															className={cn(
 																"block rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
 																pathname === sub.href
@@ -169,7 +175,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 				</nav>
 
 				{/* PATIČKA */}
-				<div className="p-4 border-t border-slate-800 bg-slate-900/50">
+				<div className="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3">
 					<div
 						className={cn(
 							"flex items-center gap-3",
@@ -186,6 +192,18 @@ export default function Sidebar({ userRole }: SidebarProps) {
 							</div>
 						)}
 					</div>
+
+					<button
+						onClick={handleLogout}
+						className={cn(
+							"w-full group flex items-center rounded-md px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-900/30 hover:text-red-400 transition-all",
+							isCollapsed && "justify-center",
+						)}>
+						<LogOut
+							className={cn("h-5 w-5 flex-shrink-0", !isCollapsed && "mr-3")}
+						/>
+						{!isCollapsed && <span>Odhlásit se</span>}
+					</button>
 				</div>
 			</div>
 		</>

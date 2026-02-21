@@ -117,6 +117,102 @@ export class UsersService {
     });
   }
 
+  async findOne(id: string) {
+    return this.prisma.profile.findUnique({
+      where: { id },
+      include: { jobPosition: true },
+    });
+  }
+
+  // Statistiky zaměstnanců pro daný měsíc — použitelné i na dashboardu
+  async getStats(adminId: string, year: number, month: number) {
+    const adminProfile = await this.prisma.profile.findUnique({
+      where: { id: adminId },
+      select: { locationId: true },
+    });
+    if (!adminProfile?.locationId) return [];
+
+    const locationId = adminProfile.locationId;
+    const dateFrom = new Date(year, month - 1, 1);
+    const dateTo = new Date(year, month, 0, 23, 59, 59, 999);
+    const now = new Date();
+
+    const [employees, shifts, vacations] = await Promise.all([
+      this.prisma.profile.findMany({
+        where: { locationId, isActivated: true },
+        select: { id: true, targetHoursPerMonth: true },
+      }),
+      this.prisma.shift.findMany({
+        where: {
+          locationId,
+          startDatetime: { gte: dateFrom, lte: dateTo },
+          assignedUserId: { not: null },
+        },
+        select: {
+          assignedUserId: true,
+          startDatetime: true,
+          endDatetime: true,
+        },
+      }),
+      this.prisma.vacationRequest.findMany({
+        where: {
+          user: { locationId },
+          startDate: { lte: dateTo },
+          endDate: { gte: dateFrom },
+          status: { in: ['APPROVED', 'PENDING'] },
+        },
+        select: { userId: true, startDate: true, endDate: true, status: true },
+      }),
+    ]);
+
+    const calcDuration = (start: Date, end: Date): number => {
+      const dur = (end.getTime() - start.getTime()) / 36e5;
+      return dur >= 6 ? dur - 0.5 : dur;
+    };
+
+    const round1 = (n: number) => Math.round(n * 10) / 10;
+
+    return employees.map((emp) => {
+      const myShifts = shifts.filter((s) => s.assignedUserId === emp.id);
+      const target = Number(emp.targetHoursPerMonth ?? 160);
+
+      const workedHours = myShifts
+        .filter((s) => s.endDatetime <= now)
+        .reduce((acc, s) => acc + calcDuration(s.startDatetime, s.endDatetime), 0);
+
+      const scheduledHours = myShifts
+        .filter((s) => s.startDatetime > now)
+        .reduce((acc, s) => acc + calcDuration(s.startDatetime, s.endDatetime), 0);
+
+      const totalHours = workedHours + scheduledHours;
+      const overtime = Math.max(0, totalHours - target);
+
+      const myVacations = vacations.filter((v) => v.userId === emp.id);
+
+      const vacationDays = myVacations
+        .filter((v) => v.status === 'APPROVED')
+        .reduce((acc, v) => {
+          return acc + Math.ceil((v.endDate.getTime() - v.startDate.getTime()) / 864e5) + 1;
+        }, 0);
+
+      const pendingVacationDays = myVacations
+        .filter((v) => v.status === 'PENDING')
+        .reduce((acc, v) => {
+          return acc + Math.ceil((v.endDate.getTime() - v.startDate.getTime()) / 864e5) + 1;
+        }, 0);
+
+      return {
+        userId: emp.id,
+        workedHours: round1(workedHours),
+        scheduledHours: round1(scheduledHours),
+        totalHours: round1(totalHours),
+        overtime: round1(overtime),
+        vacationDays,
+        pendingVacationDays,
+      };
+    });
+  }
+
   // --- ÚPRAVA UŽIVATELE ---
   async update(id: string | number, dto: UpdateUserDto) {
     return this.prisma.profile.update({
