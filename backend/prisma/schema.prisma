@@ -56,6 +56,14 @@ model ShiftType {
   availabilities Availability[]      // Vazba pro preference konkrétních směn
 }
 
+// --- PRACOVNÍ POMĚRY ---
+model EmploymentContract {
+  id       Int                    @id @default(autoincrement())
+  type     EmploymentContractType @unique
+  label    String                 // "HPP", "DPČ", "DPP", "IČO"
+  profiles Profile[]
+}
+
 // --- UŽIVATELÉ ---
 model Profile {
   id                 String         @id @default(uuid())
@@ -64,7 +72,10 @@ model Profile {
   fullName           String
   role               UserRole       @default(EMPLOYEE)
   targetHoursPerMonth Decimal        @default(160) // Fond hodin pro plný úvazek
-  
+
+  employmentContractId Int?
+  employmentContract   EmploymentContract? @relation(fields: [employmentContractId], references: [id])
+
   invitationToken    String?        @unique
   invitationExpires  DateTime?
   isActivated        Boolean        @default(false)
@@ -229,8 +240,14 @@ model ScheduleSubmission {
 enum UserRole {
   ADMIN
   MANAGER
-  EMPLOYEE    // Plný úvazek (HPP)
-  PART_TIMER  // Brigádník (DPP/DPČ)
+  EMPLOYEE    // Všichni zaměstnanci (HPP, DPČ, DPP, IČO) – typ poměru je v EmploymentContract
+}
+
+enum EmploymentContractType {
+  HPP        // Hlavní pracovní poměr
+  DPC        // Dohoda o pracovní činnosti (DPČ)
+  DPP        // Dohoda o provedení práce
+  ICO        // Živnostník / OSVČ
 }
 
 enum ScheduleStatus {

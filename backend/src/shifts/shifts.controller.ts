@@ -49,8 +49,14 @@ export class ShiftsController {
 
   @Get('available-employees/:locationId')
   @Roles('ADMIN')
-  async getEmployees(@Param('locationId') locationId: string) {
-    return this.shiftsService.getAvailableEmployees(Number(locationId));
+  async getEmployees(
+    @Param('locationId') locationId: string,
+    @Query('jobPositionId') jobPositionId?: string,
+  ) {
+    return this.shiftsService.getAvailableEmployees(
+      Number(locationId),
+      jobPositionId ? Number(jobPositionId) : undefined,
+    );
   }
   // Přehled pro admina s preferencemi zaměstnanců
   @Get('admin-overview')

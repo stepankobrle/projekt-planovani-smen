@@ -4,6 +4,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/ProtectedRoute";
+import dynamic from "next/dynamic";
+import { CalendarPdfDocument } from "@/app/components/pdf/CalendarPdfDocument";
+import * as ics from "ics";
 
 // --- INTERFACES ---
 interface Shift {
@@ -12,7 +15,10 @@ interface Shift {
 	endDatetime: string;
 	assignedUser?: { id: string; email: string; fullName: string } | null;
 	shiftType: { id: number; name: string; colorCode: string };
+	jobPosition?: { name: string };
 	jobPositionId: number;
+	location?: { name: string };
+	locationId: number;
 	isMarketplace: boolean;
 }
 
@@ -91,24 +97,31 @@ export default function AdminMonthlySchedulePage() {
 	}, [params.id, viewDate]);
 
 	useEffect(() => {
-		setLoading(true); // Loading jen při změně data
+		setLoading(true);
 		fetchSchedule();
 		const fetchHelpers = async () => {
 			try {
-				const [resTypes, resPos, resUsers] = await Promise.all([
+				const [resTypes, resPos] = await Promise.all([
 					api.get("/shift-types"),
 					api.get("/job-positions"),
-					api.get(`/shifts/available-employees/${params.id}`),
 				]);
 				setShiftTypes(resTypes.data);
 				setPositions(resPos.data);
-				setUsers(resUsers.data);
 			} catch (e) {
 				console.error("Chyba pomocných dat", e);
 			}
 		};
 		fetchHelpers();
 	}, [viewDate, params.id, fetchSchedule]);
+
+	// Načtení všech zaměstnanců při otevření modálu
+	useEffect(() => {
+		if (!modal.isOpen) return;
+		api
+			.get(`/shifts/available-employees/${params.id}`)
+			.then((res) => setUsers(res.data))
+			.catch((e) => console.error("Chyba načítání zaměstnanců:", e));
+	}, [modal.isOpen, params.id]);
 
 	const moveMonth = (step: number) => {
 		setViewDate((prev) => {
@@ -151,7 +164,10 @@ export default function AdminMonthlySchedulePage() {
 
 		try {
 			setGenerating(true);
-			const response = await api.post(`/schedule-groups/${data.id}/auto-assign`, {});
+			const response = await api.post(
+				`/schedule-groups/${data.id}/auto-assign`,
+				{},
+			);
 			alert(response.data.message);
 			fetchSchedule(); // Obnovit kalendář
 		} catch (err) {
@@ -169,7 +185,9 @@ export default function AdminMonthlySchedulePage() {
 		if (!confirm(`Opravdu chcete změnit stav rozvrhu na ${newStatus}?`)) return;
 
 		try {
-			await api.patch(`/schedule-groups/${data.id}/status`, { status: newStatus });
+			await api.patch(`/schedule-groups/${data.id}/status`, {
+				status: newStatus,
+			});
 			fetchSchedule();
 		} catch (err) {
 			alert("Nepodařilo se změnit stav rozvrhu.");
@@ -304,6 +322,67 @@ export default function AdminMonthlySchedulePage() {
 		});
 	};
 
+	const PDFDownloadLink = dynamic(
+		() => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
+		{
+			ssr: false,
+			loading: () => <button>Načítám PDF...</button>,
+		},
+	);
+
+	const handleExportIcs = () => {
+		if (!data?.shifts) return;
+
+		const events: ics.EventAttributes[] = data.shifts.map((shift) => {
+			const start = new Date(shift.startDatetime);
+			const end = new Date(shift.endDatetime);
+
+			// 1. Získání dat s pojistkou (fallbackem)
+			// Pokud backend nic nepošle, použijeme text "Neznámá..."
+			const positionName = shift.jobPosition?.name || "Pozice";
+			const workerName = shift.assignedUser?.fullName || "VOLNO";
+			const locationName = shift.location?.name || "Neznámá lokace";
+			const shiftTypeName = shift.shiftType?.name || "Směna";
+
+			return {
+				start: [
+					start.getFullYear(),
+					start.getMonth() + 1,
+					start.getDate(),
+					start.getHours(),
+					start.getMinutes(),
+				],
+				end: [
+					end.getFullYear(),
+					end.getMonth() + 1,
+					end.getDate(),
+					end.getHours(),
+					end.getMinutes(),
+				],
+				// 2. Použití proměnných
+				title: `${positionName}: ${workerName}`,
+				description: `Typ: ${shiftTypeName}`,
+				location: locationName,
+				status: "CONFIRMED",
+				busyStatus: "BUSY",
+			};
+		});
+
+		// ... zbytek funkce (generování a stažení) ...
+		ics.createEvents(events, (error, value) => {
+			if (value) {
+				const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
+				const url = window.URL.createObjectURL(blob);
+				const link = document.createElement("a");
+				link.href = url;
+				link.setAttribute("download", `export.ics`);
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+			}
+		});
+	};
+
 	return (
 		<div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
 			<button
@@ -311,7 +390,39 @@ export default function AdminMonthlySchedulePage() {
 				className="text-[10px] font-black uppercase text-indigo-400 mb-4 block hover:text-indigo-600 transition-colors">
 				← Zpět
 			</button>
-
+			{/* TLAČÍTKO PRO EXPORT */}
+			<div className="mt-4">
+				<PDFDownloadLink
+					document={
+						<CalendarPdfDocument
+							shifts={data?.shifts || []}
+							month={monthNames[viewDate.month - 1]}
+							year={viewDate.year}
+							monthIndex={viewDate.month} //
+						/>
+					}
+					fileName={`Rozpis_${viewDate.year}_${viewDate.month}.pdf`}>
+					{/* @ts-ignore - React PDF má občas problém s typy children funkce */}
+					{({ blob, url, loading, error }) =>
+						loading ? (
+							<button
+								className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm font-bold"
+								disabled>
+								Generuji PDF...
+							</button>
+						) : (
+							<button className="px-4 py-2 bg-red-600 text-black rounded-lg cursor-pointer text-sm font-bold hover:bg-red-700 flex items-center gap-2">
+								📄 Stáhnout PDF
+							</button>
+						)
+					}
+				</PDFDownloadLink>
+			</div>
+			<button
+				onClick={handleExportIcs}
+				className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-100 transition-all active:scale-95">
+				📅 Stáhnout ICS
+			</button>
 			<div className="max-w-[1200px] mx-auto mb-8 flex items-center justify-center gap-6 text-slate-800">
 				<button
 					onClick={() => moveMonth(-1)}
@@ -572,12 +683,21 @@ export default function AdminMonthlySchedulePage() {
 										setModal({ ...modal, assignedUserId: e.target.value })
 									}>
 									<option value="">-- Nechat volné --</option>
-									{users.map((u) => (
-										<option key={u.id} value={u.id}>
-											{u.fullName}
-										</option>
-									))}
+									{users.map((u) => {
+										const name = u.fullName ?? u.email;
+										const label = u.employmentContract?.label;
+										return (
+											<option key={u.id} value={u.id}>
+												{label ? `${name} — ${label}` : name}
+											</option>
+										);
+									})}
 								</select>
+								{users.length === 0 && (
+									<p className="text-[10px] text-amber-600 mt-1 font-semibold">
+										Pro tuto pozici nejsou evidováni žádní zaměstnanci.
+									</p>
+								)}
 							</div>
 
 							<div className="flex gap-2 pt-4">

@@ -22,9 +22,13 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsNumber()
-  targetHours?: number; // Frontend posílá "targetHours"
+  targetHours?: number;
 
   @IsOptional()
   @IsNumber()
-  positionId?: number; // Frontend posílá "positionId"
+  positionId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  employmentContractId?: number;
 }

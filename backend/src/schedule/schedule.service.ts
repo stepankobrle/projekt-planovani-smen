@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ScheduleStatus, Shift, ShiftStatus } from '@prisma/client';
 
 @Injectable()
 export class ScheduleService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   // 1. Najde rozvrh pro konkrétní rok a měsíc
   async getByMonth(locationId: number, year: number, month: number) {
@@ -19,6 +23,11 @@ export class ScheduleService {
           include: {
             shiftType: true,
             assignedUser: true,
+            jobPosition: true,
+            location: true,
+          },
+          orderBy: {
+            startDatetime: 'asc',
           },
         },
       },
@@ -80,20 +89,40 @@ export class ScheduleService {
   }
 
   async updateStatus(id: string, status: string) {
-    return this.prisma.$transaction([
+    // Načteme skupinu kvůli locationId, year, month pro notifikace
+    const group = await this.prisma.scheduleGroup.findUnique({
+      where: { id },
+      select: { locationId: true, year: true, month: true },
+    });
+    if (!group) throw new NotFoundException('Rozvrh nenalezen.');
+
+    const result = await this.prisma.$transaction([
       this.prisma.scheduleGroup.update({
         where: { id },
-        data: {
-          status: status as ScheduleStatus,
-        },
+        data: { status: status as ScheduleStatus },
       }),
       this.prisma.shift.updateMany({
         where: { scheduleGroupId: id },
-        data: {
-          status: status as ShiftStatus,
-        },
+        data: { status: status as ShiftStatus },
       }),
     ]);
+
+    if (status === 'PREFERENCES' || status === 'PUBLISHED') {
+      const users = await this.prisma.profile.findMany({
+        where: { locationId: group.locationId, isActivated: true },
+        select: { id: true },
+      });
+      const userIds = users.map((u) => u.id);
+      const period = `${group.month}/${group.year}`;
+      const message =
+        status === 'PREFERENCES'
+          ? `Byl otevřen sběr preferencí pro ${period}. Zadejte svou dostupnost.`
+          : `Rozvrh pro ${period} byl publikován.`;
+
+      await this.notifications.notifyUsers(userIds, group.locationId, message, 'INFO');
+    }
+
+    return result;
   }
 
   // AUTOMATICKÉ PŘIŘAZENÍ
@@ -114,7 +143,7 @@ export class ScheduleService {
 
     const employees = await this.prisma.profile.findMany({
       where: { locationId, role: 'EMPLOYEE', isActivated: true },
-      include: { jobPosition: true },
+      include: { jobPosition: true, employmentContract: true },
     });
     // 2. INIT WORKLOAD & HISTORIE
     // Načteme historii i 7 dní PŘED začátkem, abychom viděli "streaky" (šňůry směn) z minulého měsíce
@@ -139,6 +168,43 @@ export class ScheduleService {
       },
       select: { userId: true, startDate: true, endDate: true },
     });
+
+    // --- DPP: Načtení hodin odpracovaných před tímto obdobím v daném roce ---
+    const yearStart = new Date(dateFrom.getFullYear(), 0, 1);
+    const dppIds = employees
+      .filter((e) => e.employmentContract?.type === 'DPP')
+      .map((e) => e.id);
+
+    const dppPrePeriodHours = new Map<string, number>();
+    if (dppIds.length > 0) {
+      const prePeriodShifts = await this.prisma.shift.findMany({
+        where: {
+          assignedUserId: { in: dppIds },
+          startDatetime: { gte: yearStart, lt: dateFrom },
+        },
+        select: {
+          assignedUserId: true,
+          startDatetime: true,
+          endDatetime: true,
+        },
+      });
+      for (const s of prePeriodShifts) {
+        if (!s.assignedUserId) continue;
+        const dur =
+          (s.endDatetime.getTime() - s.startDatetime.getTime()) / 36e5;
+        const net = dur >= 6 ? dur - 0.5 : dur;
+        dppPrePeriodHours.set(
+          s.assignedUserId,
+          (dppPrePeriodHours.get(s.assignedUserId) ?? 0) + net,
+        );
+      }
+    }
+
+    // --- DPČ: Stropní limit hodin pro dané plánovací období ---
+    // Zákon: průměr max 20h/týden za celé trvání dohody (§ 76 ZP)
+    const periodWeeks =
+      (dateTo.getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24 * 7);
+    const dpcPeriodCap = Math.ceil(periodWeeks) * 20;
 
     const workLoad = new Map<string, number>();
     const userSchedules = new Map<
@@ -229,6 +295,19 @@ export class ScheduleService {
       let viableCandidates = employees.filter((emp) => {
         // A. Pozice
         if (emp.jobPositionId !== shift.jobPositionId) return false;
+
+        // A2. DPP: zákonný limit 300 hodin za kalendářní rok (§ 75 ZP)
+        if (emp.employmentContract?.type === 'DPP') {
+          const preHours = dppPrePeriodHours.get(emp.id) ?? 0;
+          const periodHours = workLoad.get(emp.id) ?? 0;
+          if (preHours + periodHours + netDuration > 300) return false;
+        }
+
+        // A3. DPČ: průměr max 20h/týden za plánovací období (§ 76 ZP)
+        if (emp.employmentContract?.type === 'DPC') {
+          const periodHours = workLoad.get(emp.id) ?? 0;
+          if (periodHours + netDuration > dpcPeriodCap) return false;
+        }
 
         // B. Dostupnost
         const pref = shift.availabilities.find((a) => a.userId === emp.id);

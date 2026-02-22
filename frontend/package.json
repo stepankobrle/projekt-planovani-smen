@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.3.2",
     "axios": "^1.13.5",
     "clsx": "^2.1.1",
+    "ics": "^3.8.1",
     "js-cookie": "^3.0.5",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.563.0",

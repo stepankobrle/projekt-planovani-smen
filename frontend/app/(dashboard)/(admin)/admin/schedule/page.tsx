@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import Link from "next/link";
 import { useAuth } from "@/app/components/ProtectedRoute";
+import dynamic from "next/dynamic";
 
 interface ScheduleGroup {
 	id: string;

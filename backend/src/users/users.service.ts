@@ -45,6 +45,7 @@ export class UsersService {
       targetHoursPerMonth: dto.targetHours,
       locationId: correctLocationId,
       jobPositionId: dto.positionId,
+      employmentContractId: dto.employmentContractId ?? undefined,
       invitationToken: token,
       invitationExpires: expires,
     };
@@ -112,6 +113,7 @@ export class UsersService {
       },
       include: {
         jobPosition: true,
+        employmentContract: true,
       },
       orderBy: {
         fullName: 'asc',
@@ -145,7 +147,7 @@ export class UsersService {
     await this.verifyUserAccess(id, adminLocationId);
     return this.prisma.profile.findUnique({
       where: { id },
-      include: { jobPosition: true },
+      include: { jobPosition: true, employmentContract: true },
     });
   }
 
@@ -248,9 +250,9 @@ export class UsersService {
         email: dto.email,
         fullName: dto.fullName,
         role: dto.role,
-        // Mapování názvů z DTO na DB
         targetHoursPerMonth: dto.targetHours,
         jobPositionId: dto.positionId,
+        employmentContractId: dto.employmentContractId ?? undefined,
       },
     });
   }

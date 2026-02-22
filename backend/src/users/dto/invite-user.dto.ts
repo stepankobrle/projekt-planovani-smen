@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsNumber,
   IsInt,
+  IsOptional,
   Min,
 } from 'class-validator';
 import { UserRole } from '@prisma/client';
@@ -20,8 +21,12 @@ export class InviteUserDto {
 
   @IsNumber()
   @Min(0)
-  targetHours: number; // Kolik má mít h/měsíc
+  targetHours: number;
 
   @IsInt()
-  positionId: number; // ID pozice z tabulky JobPosition
+  positionId: number;
+
+  @IsOptional()
+  @IsInt()
+  employmentContractId?: number;
 }

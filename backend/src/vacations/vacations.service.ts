@@ -74,10 +74,23 @@ export class VacationsService {
     if (!request || request.user.locationId !== adminLocationId) {
       throw new ForbiddenException('Nemáte přístup k této žádosti.');
     }
-    return this.prisma.vacationRequest.update({
+    const updated = await this.prisma.vacationRequest.update({
       where: { id },
       data: { status },
     });
+
+    const message =
+      status === 'APPROVED'
+        ? 'Vaše žádost o dovolenou byla schválena.'
+        : 'Vaše žádost o dovolenou byla zamítnuta.';
+    await this.notificationsService.notifyUser(
+      request.userId,
+      adminLocationId,
+      message,
+      status === 'APPROVED' ? 'INFO' : 'ALERT',
+    );
+
+    return updated;
   }
 
   // Zaměstnanec: Moje žádosti

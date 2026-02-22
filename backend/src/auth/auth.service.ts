@@ -16,15 +16,18 @@ export class AuthService {
   ) {}
 
   async signIn(email: string, password: string) {
-    const user = await this.prisma.profile.findUnique({ where: { email } });
+    const user = await this.prisma.profile.findUnique({
+      where: { email },
+      include: { jobPosition: true },
+    });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      console.log('DEBUG BACKEND - User z DB:', user);
+      const effectiveRole = user.jobPosition?.isManagerial ? 'ADMIN' : user.role;
       const payload = {
         sub: user.id,
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: effectiveRole,
         locationId: user.locationId,
         fullName: user.fullName,
       };
@@ -34,7 +37,7 @@ export class AuthService {
         user: {
           id: user.id,
           fullName: user.fullName,
-          role: user.role,
+          role: effectiveRole,
           locationId: user.locationId,
         },
       };

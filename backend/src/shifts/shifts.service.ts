@@ -5,13 +5,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
-import { Shift, ShiftStatus, Prisma } from '@prisma/client';
+import { ShiftStatus, Prisma } from '@prisma/client';
 import { UpdateShiftDto } from './dto/update-shift.dto';
 
 @Injectable()
 export class ShiftsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   // --- 1. HROMADNÉ VYTVOŘENÍ ZE ŠABLONY ---
   async bulkCreateFromTemplate(dto: any) {
@@ -230,7 +234,7 @@ export class ShiftsService {
       }
     }
     // 3. SAMOTNÝ UPDATE
-    return this.prisma.shift.update({
+    const updated = await this.prisma.shift.update({
       where: { id },
       data: {
         assignedUserId:
@@ -248,21 +252,48 @@ export class ShiftsService {
         shiftType: true,
       },
     });
+
+    // Notifikace přiřazenému zaměstnanci — pouze u publikovaného rozvrhu
+    if (
+      existingShift.assignedUserId &&
+      existingShift.status === ShiftStatus.PUBLISHED
+    ) {
+      const shiftDate = existingShift.startDatetime.toLocaleString('cs-CZ', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      await this.notifications.notifyUser(
+        existingShift.assignedUserId,
+        existingShift.locationId,
+        `Vaše směna dne ${shiftDate} byla upravena administrátorem.`,
+        'ALERT',
+      );
+    }
+
+    return updated;
   }
 
   // --- 4. OSTATNÍ POMOCNÉ METODY ---
-  async getAvailableEmployees(locationId: number) {
+  async getAvailableEmployees(locationId: number, jobPositionId?: number) {
     return this.prisma.profile.findMany({
       where: {
-        locationId: locationId,
+        locationId,
         role: 'EMPLOYEE',
         isActivated: true,
+        ...(jobPositionId ? { jobPositionId } : {}),
       },
       select: {
         id: true,
         email: true,
         fullName: true,
+        jobPositionId: true,
+        employmentContract: {
+          select: { id: true, type: true, label: true },
+        },
       },
+      orderBy: { fullName: 'asc' },
     });
   }
 
@@ -298,6 +329,22 @@ export class ShiftsService {
       include: { assignedUser: true },
     });
     if (!shift) throw new NotFoundException('Směna nenalezena');
+
+    // Notifikace před smazáním — pouze u publikovaného rozvrhu
+    if (shift.assignedUserId && shift.status === ShiftStatus.PUBLISHED) {
+      const shiftDate = shift.startDatetime.toLocaleString('cs-CZ', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      await this.notifications.notifyUser(
+        shift.assignedUserId,
+        shift.locationId,
+        `Vaše směna dne ${shiftDate} byla zrušena administrátorem.`,
+        'ALERT',
+      );
+    }
 
     return this.prisma.shift.delete({ where: { id } });
   }

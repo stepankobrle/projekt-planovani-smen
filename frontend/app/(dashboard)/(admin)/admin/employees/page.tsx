@@ -45,6 +45,12 @@ interface JobPosition {
 	isManagerial: boolean;
 }
 
+interface EmploymentContract {
+	id: number;
+	type: string;
+	label: string;
+}
+
 interface Employee {
 	id: string;
 	fullName: string | null;
@@ -54,6 +60,8 @@ interface Employee {
 	targetHoursPerMonth?: number;
 	jobPositionId?: number;
 	jobPosition?: { id: number; name: string };
+	employmentContractId?: number;
+	employmentContract?: EmploymentContract;
 }
 
 interface EmployeeStats {
@@ -89,6 +97,7 @@ export default function EmployeesPage() {
 
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
+	const [employmentContracts, setEmploymentContracts] = useState<EmploymentContract[]>([]);
 	const [statsMap, setStatsMap] = useState<Map<string, EmployeeStats>>(
 		new Map(),
 	);
@@ -125,6 +134,7 @@ export default function EmployeesPage() {
 		role: UserRole.EMPLOYEE,
 		targetHours: 160,
 		jobPositionId: "",
+		employmentContractId: "",
 	});
 
 	const isAdmin = role === "ADMIN";
@@ -139,12 +149,14 @@ export default function EmployeesPage() {
 	const fetchData = useCallback(async () => {
 		if (!isAdmin) return;
 		try {
-			const [resUsers, resPositions] = await Promise.all([
+			const [resUsers, resPositions, resContracts] = await Promise.all([
 				api.get("/users"),
 				api.get("/job-positions"),
+				api.get("/employment-contracts"),
 			]);
 			setEmployees(resUsers.data);
 			setJobPositions(resPositions.data);
+			setEmploymentContracts(resContracts.data);
 		} catch (err: any) {
 			console.error("Chyba při načítání zaměstnanců:", err);
 		}
@@ -175,6 +187,7 @@ export default function EmployeesPage() {
 			role: UserRole.EMPLOYEE,
 			targetHours: 160,
 			jobPositionId: "",
+			employmentContractId: "",
 		});
 		setError("");
 		setIsModalOpen(true);
@@ -196,6 +209,10 @@ export default function EmployeesPage() {
 				jobPositionId:
 					fresh.jobPositionId?.toString() ||
 					fresh.jobPosition?.id.toString() ||
+					"",
+				employmentContractId:
+					fresh.employmentContractId?.toString() ||
+					fresh.employmentContract?.id.toString() ||
 					"",
 			});
 		} catch {
@@ -223,10 +240,14 @@ export default function EmployeesPage() {
 		setError("");
 		const isEditMode = !!editingEmployee;
 		const url = isEditMode ? `/users/${editingEmployee!.id}` : "/users/invite";
+		const { jobPositionId: _pos, employmentContractId: _ec, ...rest } = formData;
 		const payload = {
-			...formData,
+			...rest,
 			targetHours: Number(formData.targetHours),
-			jobPositionId: Number(formData.jobPositionId),
+			positionId: Number(formData.jobPositionId),
+			employmentContractId: formData.employmentContractId
+				? Number(formData.employmentContractId)
+				: undefined,
 		};
 		try {
 			isEditMode ? await api.patch(url, payload) : await api.post(url, payload);
@@ -473,6 +494,11 @@ export default function EmployeesPage() {
 														<span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
 															{emp.role}
 														</span>
+														{emp.employmentContract && (
+															<span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-200">
+																{emp.employmentContract.label}
+															</span>
+														)}
 														{emp.jobPosition && (
 															<span className="text-[10px] text-slate-400 flex items-center gap-0.5">
 																<Briefcase size={10} /> {emp.jobPosition.name}
@@ -735,6 +761,27 @@ export default function EmployeesPage() {
 													))}
 												</select>
 											</div>
+										</div>
+										<div>
+											<label className="text-xs font-bold uppercase text-slate-500 mb-1 block">
+												Typ úvazku
+											</label>
+											<select
+												value={formData.employmentContractId}
+												onChange={(e) =>
+													setFormData({
+														...formData,
+														employmentContractId: e.target.value,
+													})
+												}
+												className="w-full p-3 border border-slate-200 rounded-xl font-semibold bg-white outline-none focus:border-blue-500">
+												<option value="">-- Nevybráno --</option>
+												{employmentContracts.map((c) => (
+													<option key={c.id} value={c.id}>
+														{c.label}
+													</option>
+												))}
+											</select>
 										</div>
 										<div className="flex gap-3 pt-4">
 											<button
