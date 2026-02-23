@@ -102,7 +102,11 @@ export class ShiftsService {
       finalEnd = dto.endTime || '16:00';
     }
 
-    const initialStatus = (dto.status as ShiftStatus) || ShiftStatus.DRAFT;
+    const scheduleGroup = await this.prisma.scheduleGroup.findUnique({
+      where: { id: dto.scheduleGroupId },
+    });
+    if (!scheduleGroup) throw new BadRequestException('Rozvrh nenalezen');
+    const initialStatus = scheduleGroup.status as unknown as ShiftStatus;
     const createdShifts: any[] = [];
 
     // Cyklus pro vytvoření (např. pokud vytváříš 3 stejné směny naráz)
@@ -124,9 +128,9 @@ export class ShiftsService {
       // ULOŽENÍ DO TABULKY SHIFT
       const shift = await this.prisma.shift.create({
         data: {
-          startDatetime: start, // Tady je ten tvůj čas z inputu (nebo šablony)
-          endDatetime: end, // Tady je ten tvůj čas z inputu (nebo šablony)
-          shiftTypeId: idAsNumber, // Tady bude buď ID šablony nebo NULL (vlastní)
+          startDatetime: start,
+          endDatetime: end,
+          shiftTypeId: idAsNumber,
           locationId: Number(dto.locationId),
           scheduleGroupId: dto.scheduleGroupId,
           jobPositionId: Number(dto.jobPositionId),
@@ -167,12 +171,20 @@ export class ShiftsService {
 
   // Upravený update, aby přesně odpovídal DTO
   async update(id: string, dto: UpdateShiftDto) {
+    console.log(
+      '[SHIFT UPDATE] Funkce zavolána, id:',
+      id,
+      '| dto:',
+      JSON.stringify(dto),
+    );
     // 1. Nejprve musíme načíst stávající směnu, abychom znali její datum
     const existingShift = await this.prisma.shift.findUnique({
       where: { id },
       include: { shiftType: true },
     });
     if (!existingShift) throw new NotFoundException('Směna nenalezena');
+    const toHHMM = (d: Date) =>
+      `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     let finalStart: Date | undefined = undefined;
     let finalEnd: Date | undefined = undefined;
     let idAsNumber: number | undefined | null = undefined;
@@ -198,28 +210,12 @@ export class ShiftsService {
         // PŘÍPAD B: Vlastní čas (buď nově nastavený, nebo úprava stávajícího vlastního)
         idAsNumber = null;
         // Pokud v DTO chybí jeden z časů, vezmeme ho z existující směny (zformátovaný na HH:mm)
-        timeS =
-          dto.startTime ||
-          existingShift.startDatetime.toLocaleTimeString('cs-CZ', {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-        timeE =
-          dto.endTime ||
-          existingShift.endDatetime.toLocaleTimeString('cs-CZ', {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+        timeS = dto.startTime || toHHMM(existingShift.startDatetime);
+        timeE = dto.endTime || toHHMM(existingShift.endDatetime);
       } else {
         // Ostatní případy (neměníme časovou logiku)
-        timeS = existingShift.startDatetime.toLocaleTimeString('cs-CZ', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-        timeE = existingShift.endDatetime.toLocaleTimeString('cs-CZ', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        timeS = toHHMM(existingShift.startDatetime);
+        timeE = toHHMM(existingShift.endDatetime);
       }
       // Sestavení nových Date objektů (použijeme datum z existující směny)
       const baseDate = new Date(existingShift.startDatetime);
@@ -254,18 +250,25 @@ export class ShiftsService {
     });
 
     // Notifikace přiřazenému zaměstnanci — pouze u publikovaného rozvrhu
-    if (
-      existingShift.assignedUserId &&
-      existingShift.status === ShiftStatus.PUBLISHED
-    ) {
-      const shiftDate = existingShift.startDatetime.toLocaleString('cs-CZ', {
+    console.log(
+      '[SHIFT UPDATE] assignedUserId:',
+      updated.assignedUserId,
+      '| status:',
+      updated.status,
+      '| PUBLISHED:',
+      ShiftStatus.PUBLISHED,
+      '| match:',
+      updated.status === ShiftStatus.PUBLISHED,
+    );
+    if (updated.assignedUserId && updated.status === ShiftStatus.PUBLISHED) {
+      const shiftDate = updated.startDatetime.toLocaleString('cs-CZ', {
         day: '2-digit',
         month: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
       });
       await this.notifications.notifyUser(
-        existingShift.assignedUserId,
+        updated.assignedUserId,
         existingShift.locationId,
         `Vaše směna dne ${shiftDate} byla upravena administrátorem.`,
         'ALERT',

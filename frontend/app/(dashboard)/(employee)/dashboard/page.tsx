@@ -31,7 +31,7 @@ interface Shift {
 
 interface Notification {
 	id: string;
-	message: string;
+	content: string;
 	type: string;
 	isRead: boolean;
 	createdAt: string;
@@ -105,6 +105,20 @@ export default function EmployeeDashboardPage() {
 		await api.patch("/notifications/read-all");
 		setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
 	};
+
+	// SSE — při nové notifikaci obnoví seznam
+	useEffect(() => {
+		const token = document.cookie.match(/token=([^;]+)/)?.[1];
+		if (!token) return;
+		const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+		const es = new EventSource(`${API_URL}/notifications/stream?token=${token}`);
+		es.onmessage = () => {
+			api.get<Notification[]>("/notifications").then((res) =>
+				setNotifications(res.data),
+			);
+		};
+		return () => es.close();
+	}, []);
 
 	// --- ODVOZENÁ DATA ---
 	const now = new Date();
@@ -358,7 +372,7 @@ export default function EmployeeDashboardPage() {
 												? "bg-slate-50 text-slate-500"
 												: "bg-blue-50 text-slate-700 border border-blue-100"
 										}`}>
-										<p className="leading-relaxed">{n.message}</p>
+										<p className="leading-relaxed">{n.content}</p>
 										<p className="text-slate-400 mt-1">
 											{new Date(n.createdAt).toLocaleDateString("cs-CZ")}
 										</p>

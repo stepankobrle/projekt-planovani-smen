@@ -683,19 +683,41 @@ export default function AdminMonthlySchedulePage() {
 										setModal({ ...modal, assignedUserId: e.target.value })
 									}>
 									<option value="">-- Nechat volné --</option>
-									{users.map((u) => {
-										const name = u.fullName ?? u.email;
-										const label = u.employmentContract?.label;
-										return (
-											<option key={u.id} value={u.id}>
-												{label ? `${name} — ${label}` : name}
-											</option>
+									{(() => {
+										const renderOption = (u: any) => {
+											const name = u.fullName ?? u.email;
+											const contractLabel = u.employmentContract?.label;
+											return (
+												<option key={u.id} value={u.id}>
+													{contractLabel ? `${name} — ${contractLabel}` : name}
+												</option>
+											);
+										};
+										const matching = users.filter(
+											(u) => u.jobPositionId === modal.jobPositionId,
 										);
-									})}
+										const others = users.filter(
+											(u) => u.jobPositionId !== modal.jobPositionId,
+										);
+										return (
+											<>
+												{matching.length > 0 && (
+													<optgroup label="— Odpovídající pozice —">
+														{matching.map(renderOption)}
+													</optgroup>
+												)}
+												{others.length > 0 && (
+													<optgroup label="— Ostatní zaměstnanci —">
+														{others.map(renderOption)}
+													</optgroup>
+												)}
+											</>
+										);
+									})()}
 								</select>
 								{users.length === 0 && (
 									<p className="text-[10px] text-amber-600 mt-1 font-semibold">
-										Pro tuto pozici nejsou evidováni žádní zaměstnanci.
+										Pro tuto lokaci nejsou evidováni žádní zaměstnanci.
 									</p>
 								)}
 							</div>
