@@ -109,7 +109,7 @@ export default function VacationsPage() {
 								onChange={(e) =>
 									setForm({ ...form, startDate: e.target.value })
 								}
-								className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-indigo-500"
+								className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-brand-secondary"
 							/>
 						</div>
 						<div>
@@ -123,7 +123,7 @@ export default function VacationsPage() {
 								onChange={(e) =>
 									setForm({ ...form, endDate: e.target.value })
 								}
-								className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-indigo-500"
+								className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-brand-secondary"
 							/>
 						</div>
 					</div>
@@ -136,7 +136,7 @@ export default function VacationsPage() {
 							value={form.note}
 							onChange={(e) => setForm({ ...form, note: e.target.value })}
 							rows={3}
-							className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+							className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-brand-secondary resize-none"
 							placeholder="Důvod nebo poznámka k žádosti..."
 						/>
 					</div>
@@ -146,8 +146,8 @@ export default function VacationsPage() {
 						disabled={submitting}
 						className={`w-full p-3 rounded-xl text-white font-bold text-sm uppercase tracking-widest transition-all shadow ${
 							submitting
-								? "bg-indigo-300 cursor-not-allowed"
-								: "bg-indigo-600 hover:bg-indigo-700"
+								? "bg-brand-secondary/40 cursor-not-allowed"
+								: "bg-brand-secondary hover:bg-brand-secondary-hover"
 						}`}>
 						{submitting ? "Odesílám..." : "Odeslat žádost"}
 					</button>

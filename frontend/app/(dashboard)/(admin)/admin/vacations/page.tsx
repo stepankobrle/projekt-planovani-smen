@@ -98,8 +98,8 @@ export default function AdminVacationsPage() {
 						onClick={() => setFilter(tab.key)}
 						className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
 							filter === tab.key
-								? "bg-blue-600 text-white shadow-sm"
-								: "bg-white border border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600"
+								? "bg-brand-secondary text-brand-text-on-primary shadow-sm"
+								: "bg-white border border-slate-200 text-slate-500 hover:border-brand-secondary/50 hover:text-brand-secondary"
 						}`}>
 						{tab.label}
 						{tab.key === "PENDING" && pendingCount > 0 && (
@@ -126,8 +126,8 @@ export default function AdminVacationsPage() {
 					Žádné žádosti k zobrazení.
 				</div>
 			) : (
-				<div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-					<table className="w-full text-left border-collapse">
+				<div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
+					<table className="w-full min-w-[700px] text-left border-collapse">
 						<thead>
 							<tr className="bg-slate-50/50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
 								<th className="px-6 py-4 font-semibold">Zaměstnanec</th>
@@ -148,7 +148,7 @@ export default function AdminVacationsPage() {
 										className="hover:bg-slate-50/50 transition-colors">
 										<td className="px-6 py-4">
 											<div className="flex items-center gap-3">
-												<div className="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-sm">
+												<div className="h-9 w-9 rounded-full bg-brand-secondary/10 flex items-center justify-center text-brand-secondary font-bold text-sm">
 													{req.user.fullName?.[0] ?? "?"}
 												</div>
 												<div>

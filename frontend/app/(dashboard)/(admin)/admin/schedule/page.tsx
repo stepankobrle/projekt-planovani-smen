@@ -63,7 +63,7 @@ export default function UnifiedSchedulePage() {
 		);
 
 	return (
-		<div className="min-h-screen bg-gray-50 p-4 md:p-8 text-slate-900">
+		<div className="min-h-screen bg-brand-surface p-4 md:p-8 text-slate-900">
 			<div className="max-w-5xl mx-auto">
 				<div className="flex justify-between items-center mb-8">
 					<div>
@@ -79,7 +79,7 @@ export default function UnifiedSchedulePage() {
 					{role === "ADMIN" && (
 						<button
 							onClick={() => setIsModalOpen(true)}
-							className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg text-sm">
+							className="bg-brand-secondary text-brand-text-on-primary px-6 py-2 rounded-xl font-bold hover:bg-brand-secondary-hover transition shadow-lg text-sm">
 							+ NOVÝ MĚSÍC
 						</button>
 					)}
@@ -123,7 +123,7 @@ export default function UnifiedSchedulePage() {
 													group.status === "PUBLISHED"
 														? "bg-green-100 text-green-600"
 														: group.status === "OPEN"
-															? "bg-blue-100 text-blue-600"
+															? "bg-brand-secondary/15 text-brand-secondary"
 															: "bg-orange-100 text-orange-600"
 												}`}>
 												{group.status}
@@ -132,7 +132,7 @@ export default function UnifiedSchedulePage() {
 										<td className="p-4 text-right">
 											<Link
 												href={`/schedule/${group.id}`}
-												className="inline-block bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-600 px-4 py-1.5 rounded-lg text-xs font-black transition-all uppercase tracking-tighter">
+												className="inline-block bg-slate-100 hover:bg-brand-secondary hover:text-brand-text-on-primary text-slate-600 px-4 py-1.5 rounded-lg text-xs font-black transition-all uppercase tracking-tighter">
 												{role === "ADMIN" ? "Spravovat" : "Zobrazit"}
 											</Link>
 										</td>
@@ -204,7 +204,7 @@ export default function UnifiedSchedulePage() {
 								</button>
 								<button
 									type="submit"
-									className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg uppercase text-xs tracking-widest">
+									className="flex-1 py-3 bg-brand-secondary text-brand-text-on-primary font-bold rounded-xl hover:bg-brand-secondary-hover transition shadow-lg uppercase text-xs tracking-widest">
 									Vytvořit
 								</button>
 							</div>

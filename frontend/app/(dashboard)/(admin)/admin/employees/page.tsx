@@ -328,7 +328,7 @@ export default function EmployeesPage() {
 					</div>
 					<button
 						onClick={openAddModal}
-						className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg transition-all active:scale-95">
+						className="flex items-center justify-center gap-2 bg-brand-secondary hover:bg-brand-secondary-hover text-brand-text-on-primary px-5 py-2.5 rounded-xl font-medium shadow-lg transition-all active:scale-95">
 						<UserPlus size={18} /> Pozvat zaměstnance
 					</button>
 				</div>
@@ -362,7 +362,7 @@ export default function EmployeesPage() {
 							placeholder="Hledat podle jména nebo emailu..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+							className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/20 focus:border-brand-secondary transition-all text-sm"
 						/>
 					</div>
 					<div className="flex gap-2 flex-wrap">
@@ -400,10 +400,10 @@ export default function EmployeesPage() {
 									activeFilter === f.key
 										? f.danger
 											? "bg-red-600 text-white"
-											: "bg-blue-600 text-white"
+											: "bg-brand-secondary text-brand-text-on-primary"
 										: f.danger
 											? "bg-white border border-red-200 text-red-600 hover:bg-red-50"
-											: "bg-white border border-slate-200 text-slate-600 hover:border-blue-300"
+											: "bg-white border border-slate-200 text-slate-600 hover:border-brand-secondary/50"
 								}`}>
 								{f.label}
 								{f.count > 0 && (
@@ -424,8 +424,8 @@ export default function EmployeesPage() {
 				</div>
 
 				{/* TABULKA */}
-				<div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-					<table className="w-full text-left border-collapse">
+				<div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
+					<table className="w-full min-w-[900px] text-left border-collapse">
 						<thead>
 							<tr className="bg-slate-50/50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
 								<th className="px-6 py-4 font-semibold">Zaměstnanec</th>
@@ -467,7 +467,7 @@ export default function EmployeesPage() {
 													className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
 														problematic
 															? "bg-red-100 text-red-600"
-															: "bg-blue-50 text-blue-600"
+															: "bg-brand-secondary/10 text-brand-secondary"
 													}`}>
 													{emp.fullName ? (
 														emp.fullName[0].toUpperCase()
@@ -495,7 +495,7 @@ export default function EmployeesPage() {
 															{emp.role}
 														</span>
 														{emp.employmentContract && (
-															<span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-200">
+															<span className="text-[10px] font-bold bg-brand-secondary/10 text-brand-secondary px-1.5 py-0.5 rounded border border-brand-secondary/20">
 																{emp.employmentContract.label}
 															</span>
 														)}
@@ -517,7 +517,7 @@ export default function EmployeesPage() {
 											<div className="w-24 h-1.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
 												<div
 													className={`h-full rounded-full transition-all ${
-														isUnder ? "bg-amber-400" : "bg-blue-500"
+														isUnder ? "bg-amber-400" : "bg-brand-secondary"
 													}`}
 													style={{ width: `${progress}%` }}
 												/>
@@ -585,7 +585,7 @@ export default function EmployeesPage() {
 											<div className="flex items-center justify-end gap-1">
 												<button
 													onClick={() => openEditModal(emp)}
-													className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+													className="p-2 text-slate-400 hover:text-brand-secondary hover:bg-brand-secondary/10 rounded-lg transition-all"
 													title="Upravit">
 													<Pencil size={16} />
 												</button>
@@ -623,7 +623,7 @@ export default function EmployeesPage() {
 								<X size={24} />
 							</button>
 							<div className="flex items-center gap-3 mb-6">
-								<div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+								<div className="p-3 bg-brand-secondary/10 text-brand-secondary rounded-2xl">
 									{editingEmployee ? (
 										<UserCog size={24} />
 									) : (
@@ -644,7 +644,7 @@ export default function EmployeesPage() {
 
 							{loadingModal ? (
 								<div className="flex items-center justify-center py-10">
-									<Loader2 className="animate-spin text-blue-500" size={28} />
+									<Loader2 className="animate-spin text-brand-secondary" size={28} />
 								</div>
 							) : (
 								<>
@@ -667,7 +667,7 @@ export default function EmployeesPage() {
 														fullName: e.target.value,
 													})
 												}
-												className="w-full p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-blue-500 transition-all"
+												className="w-full p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-brand-secondary transition-all"
 												placeholder="Jan Novák"
 											/>
 										</div>
@@ -691,7 +691,7 @@ export default function EmployeesPage() {
 															email: e.target.value,
 														})
 													}
-													className="w-full pl-10 pr-4 p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-500"
+													className="w-full pl-10 pr-4 p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-brand-secondary disabled:bg-slate-50 disabled:text-slate-500"
 													placeholder="jan@firma.cz"
 												/>
 											</div>
@@ -709,7 +709,7 @@ export default function EmployeesPage() {
 															role: e.target.value as UserRole,
 														})
 													}
-													className="w-full p-3 border border-slate-200 rounded-xl font-semibold bg-white outline-none focus:border-blue-500">
+													className="w-full p-3 border border-slate-200 rounded-xl font-semibold bg-white outline-none focus:border-brand-secondary">
 													<option value={UserRole.EMPLOYEE}>Zaměstnanec</option>
 													<option value={UserRole.MANAGER}>Manažer</option>
 													<option value={UserRole.ADMIN}>Admin</option>
@@ -728,7 +728,7 @@ export default function EmployeesPage() {
 															targetHours: Number(e.target.value),
 														})
 													}
-													className="w-full p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-blue-500"
+													className="w-full p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-brand-secondary"
 												/>
 											</div>
 										</div>
@@ -750,7 +750,7 @@ export default function EmployeesPage() {
 															jobPositionId: e.target.value,
 														})
 													}
-													className="w-full pl-10 pr-4 p-3 border border-slate-200 rounded-xl font-semibold bg-white outline-none focus:border-blue-500 appearance-none">
+													className="w-full pl-10 pr-4 p-3 border border-slate-200 rounded-xl font-semibold bg-white outline-none focus:border-brand-secondary appearance-none">
 													<option value="" disabled>
 														-- Vyberte pozici --
 													</option>
@@ -774,7 +774,7 @@ export default function EmployeesPage() {
 														employmentContractId: e.target.value,
 													})
 												}
-												className="w-full p-3 border border-slate-200 rounded-xl font-semibold bg-white outline-none focus:border-blue-500">
+												className="w-full p-3 border border-slate-200 rounded-xl font-semibold bg-white outline-none focus:border-brand-secondary">
 												<option value="">-- Nevybráno --</option>
 												{employmentContracts.map((c) => (
 													<option key={c.id} value={c.id}>
@@ -796,7 +796,7 @@ export default function EmployeesPage() {
 												className={`flex-1 py-3 font-bold rounded-xl shadow-lg transition-all ${
 													loading || !formData.jobPositionId
 														? "bg-slate-300 text-slate-500 cursor-not-allowed"
-														: "bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700"
+														: "bg-brand-secondary text-brand-text-on-primary shadow-brand-secondary/20 hover:bg-brand-secondary-hover"
 												}`}>
 												{loading
 													? "Ukládání..."

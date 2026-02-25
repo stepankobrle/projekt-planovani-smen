@@ -417,6 +417,7 @@ export class ShiftsService {
 
           // DŮLEŽITÉ: Pošleme na frontend info, jestli je tento měsíc zamčený
           isLocked: groupStatus !== 'PREFERENCES',
+          scheduleGroupStatus: groupStatus as string,
         });
       }
 

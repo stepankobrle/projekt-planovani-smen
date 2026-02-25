@@ -108,7 +108,7 @@ function SetPasswordForm() {
 						Váš účet byl aktivován a heslo nastaveno.
 					</p>
 				</div>
-				<div className="flex justify-center text-sm text-indigo-600 font-medium items-center gap-2">
+				<div className="flex justify-center text-sm text-brand-secondary font-medium items-center gap-2">
 					<Loader2 className="animate-spin w-4 h-4" />
 					Přesměrování na přihlášení...
 				</div>
@@ -147,7 +147,7 @@ function SetPasswordForm() {
 					<input
 						type={showPassword ? "text" : "password"}
 						placeholder="••••••••"
-						className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-800"
+						className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/20 focus:border-brand-secondary transition-all font-medium text-slate-800"
 						value={formData.password}
 						onChange={(e) =>
 							setFormData({ ...formData, password: e.target.value })
@@ -176,7 +176,7 @@ function SetPasswordForm() {
 					<input
 						type={showPassword ? "text" : "password"}
 						placeholder="••••••••"
-						className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-800"
+						className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/20 focus:border-brand-secondary transition-all font-medium text-slate-800"
 						value={formData.confirmPassword}
 						onChange={(e) =>
 							setFormData({ ...formData, confirmPassword: e.target.value })
@@ -189,7 +189,7 @@ function SetPasswordForm() {
 			<button
 				type="submit"
 				disabled={loading}
-				className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2">
+				className="w-full bg-brand-secondary hover:bg-brand-secondary-hover text-brand-text-on-primary py-3.5 rounded-xl font-bold shadow-lg shadow-brand-secondary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2">
 				{loading ? (
 					<>
 						<Loader2 className="animate-spin" size={20} />
@@ -209,12 +209,12 @@ function SetPasswordForm() {
 // Hlavní stránka (Musí obalit komponentu s useSearchParams do Suspense)
 export default function SetPasswordPage() {
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex items-center justify-center p-4">
+		<div className="min-h-screen bg-brand-surface flex items-center justify-center p-4">
 			<div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-8 md:p-10 border border-white/50">
 				<Suspense
 					fallback={
 						<div className="flex flex-col items-center justify-center py-10 space-y-4">
-							<Loader2 className="animate-spin text-indigo-600" size={40} />
+							<Loader2 className="animate-spin text-brand-secondary" size={40} />
 							<p className="text-slate-400 text-sm font-medium">
 								Ověřuji bezpečnostní token...
 							</p>

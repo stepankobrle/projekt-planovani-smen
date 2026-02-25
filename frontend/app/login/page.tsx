@@ -84,7 +84,7 @@ export default function LoginPage() {
 						type="email"
 						value={email}
 						onChange={(e) => setEmail(e.target.value)}
-						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 transition-all font-medium"
+						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-secondary outline-none text-slate-700 transition-all font-medium"
 						placeholder="vas@email.cz"
 						required
 						disabled={loading}
@@ -99,7 +99,7 @@ export default function LoginPage() {
 						type="password"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
-						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 transition-all font-medium"
+						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-secondary outline-none text-slate-700 transition-all font-medium"
 						placeholder="••••••••"
 						required
 						disabled={loading}
@@ -111,8 +111,8 @@ export default function LoginPage() {
 					disabled={loading}
 					className={`w-full p-4 rounded-xl text-white font-bold text-sm uppercase tracking-widest transition-all shadow-lg ${
 						loading
-							? "bg-indigo-300 cursor-not-allowed"
-							: "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-[0.98]"
+							? "bg-brand-secondary/40 cursor-not-allowed"
+							: "bg-brand-secondary hover:bg-brand-secondary-hover hover:shadow-brand-secondary/20 active:scale-[0.98]"
 					}`}>
 					{loading ? "Ověřování..." : "Přihlásit se"}
 				</button>

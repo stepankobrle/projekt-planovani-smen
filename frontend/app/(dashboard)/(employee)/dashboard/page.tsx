@@ -163,7 +163,7 @@ export default function EmployeeDashboardPage() {
 	}
 
 	return (
-		<div className="p-6 bg-slate-50 min-h-full">
+		<div className="p-6 bg-brand-surface min-h-full">
 			{/* HEADER */}
 			<div className="mb-6">
 				<h1 className="text-2xl font-black text-slate-800 tracking-tight">
@@ -197,7 +197,7 @@ export default function EmployeeDashboardPage() {
 							</div>
 							<Link
 								href="/schedule"
-								className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+								className="text-xs font-semibold text-brand-secondary hover:text-brand-secondary-hover flex items-center gap-1">
 								Zobrazit vše <ArrowRight size={12} />
 							</Link>
 						</div>
@@ -270,7 +270,7 @@ export default function EmployeeDashboardPage() {
 								</p>
 								<Link
 									href="/schedule"
-									className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
+									className="text-xs text-brand-secondary hover:text-brand-secondary-hover font-semibold flex items-center gap-1">
 									Vše <ArrowRight size={11} />
 								</Link>
 							</div>
@@ -308,7 +308,7 @@ export default function EmployeeDashboardPage() {
 						</p>
 						<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 							{[
-								{ label: "Moje směny", href: "/schedule", icon: CalendarDays, color: "bg-blue-100 text-blue-600" },
+								{ label: "Moje směny", href: "/schedule", icon: CalendarDays, color: "bg-brand-secondary/15 text-brand-secondary" },
 								{ label: "Preference", href: "/preferences", icon: Star, color: "bg-violet-100 text-violet-600" },
 								{ label: "Dovolená", href: "/vacations", icon: Plane, color: "bg-green-100 text-green-600" },
 								{ label: "Burza směn", href: "/schedule", icon: RefreshCw, color: "bg-orange-100 text-orange-600" },
@@ -318,11 +318,11 @@ export default function EmployeeDashboardPage() {
 									<Link
 										key={action.label}
 										href={action.href}
-										className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all group">
+										className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-100 hover:border-brand-secondary/30 hover:bg-brand-secondary/5 transition-all group">
 										<div className={`h-10 w-10 rounded-xl flex items-center justify-center ${action.color}`}>
 											<Icon size={20} />
 										</div>
-										<span className="text-xs font-semibold text-slate-600 group-hover:text-blue-700 text-center">
+										<span className="text-xs font-semibold text-slate-600 group-hover:text-brand-secondary text-center">
 											{action.label}
 										</span>
 									</Link>
@@ -370,7 +370,7 @@ export default function EmployeeDashboardPage() {
 										className={`p-3 rounded-xl text-xs transition-all ${
 											n.isRead
 												? "bg-slate-50 text-slate-500"
-												: "bg-blue-50 text-slate-700 border border-blue-100"
+												: "bg-brand-secondary/10 text-slate-700 border border-brand-secondary/20"
 										}`}>
 										<p className="leading-relaxed">{n.content}</p>
 										<p className="text-slate-400 mt-1">

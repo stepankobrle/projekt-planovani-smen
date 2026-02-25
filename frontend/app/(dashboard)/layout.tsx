@@ -36,14 +36,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 	const userRole = role === "ADMIN" ? UserRole.ADMIN : UserRole.EMPLOYEE;
 
 	return (
-		<div className="flex h-screen w-full bg-slate-50 overflow-hidden text-slate-900">
+		<div className="flex h-screen w-full bg-brand-primary overflow-hidden text-slate-900">
 			{/* Sidebar se teď přizpůsobí reálné roli z DB */}
 			<Sidebar userRole={userRole} />
 
 			<div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 				<Header userRole={userRole} />
 
-				<main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#f8f9fa]">
+				<main className="flex-1 overflow-y-auto p-4 md:p-8 mb-3 mr-3 bg-brand-surface border-6 border-brand-primary rounded-2xl">
 					<div className="mx-auto max-w-7xl">{children}</div>
 				</main>
 			</div>

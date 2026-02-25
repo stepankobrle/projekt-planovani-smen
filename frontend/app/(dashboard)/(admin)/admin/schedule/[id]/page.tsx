@@ -7,6 +7,7 @@ import { useAuth } from "@/app/components/ProtectedRoute";
 import dynamic from "next/dynamic";
 import { CalendarPdfDocument } from "@/app/components/pdf/CalendarPdfDocument";
 import * as ics from "ics";
+import { AlertTriangle } from "lucide-react";
 
 // --- INTERFACES ---
 interface Shift {
@@ -44,6 +45,7 @@ export default function AdminMonthlySchedulePage() {
 	const [data, setData] = useState<ScheduleGroup | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [generating, setGenerating] = useState(false); // Stav pro loader generování
+	const [showPastConfirm, setShowPastConfirm] = useState(false);
 	const [shiftTypes, setShiftTypes] = useState<any[]>([]);
 	const [positions, setPositions] = useState<any[]>([]);
 	const [users, setUsers] = useState<any[]>([]);
@@ -259,6 +261,20 @@ export default function AdminMonthlySchedulePage() {
 		} catch (err) {
 			alert("Chyba při ukládání směny");
 		}
+	};
+
+	const isDateInPast = (dateStr: string): boolean => {
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		return new Date(dateStr) < today;
+	};
+
+	const handleSaveClick = () => {
+		if (isDateInPast(modal.date) && !showPastConfirm) {
+			setShowPastConfirm(true);
+			return;
+		}
+		handleShiftSubmit();
 	};
 
 	const renderShiftsByPosition = (day: string) => {
@@ -722,18 +738,41 @@ export default function AdminMonthlySchedulePage() {
 								)}
 							</div>
 
-							<div className="flex gap-2 pt-4">
-								<button
-									onClick={() => setModal({ ...modal, isOpen: false })}
-									className="flex-1 py-3 font-black uppercase text-slate-400 text-xs hover:text-slate-600 transition-colors">
-									Zavřít
-								</button>
-								<button
-									onClick={handleShiftSubmit}
-									className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">
-									{modal.editId ? "Uložit změny" : "Vytvořit směnu"}
-								</button>
-							</div>
+							{showPastConfirm ? (
+								<div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-3">
+									<div className="flex items-start gap-2 text-amber-700">
+										<AlertTriangle size={18} className="shrink-0 mt-0.5" />
+										<p className="text-xs font-bold">
+											Tato směna má datum v minulosti. Chcete ji přesto uložit?
+										</p>
+									</div>
+									<div className="flex gap-2">
+										<button
+											onClick={() => setShowPastConfirm(false)}
+											className="flex-1 py-2.5 font-black uppercase text-slate-500 text-xs hover:bg-slate-100 rounded-xl transition-colors">
+											Zpět
+										</button>
+										<button
+											onClick={handleShiftSubmit}
+											className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl font-black uppercase text-xs shadow-lg hover:bg-amber-700 transition-all">
+											Přesto uložit
+										</button>
+									</div>
+								</div>
+							) : (
+								<div className="flex gap-2 pt-4">
+									<button
+										onClick={() => { setModal({ ...modal, isOpen: false }); setShowPastConfirm(false); }}
+										className="flex-1 py-3 font-black uppercase text-slate-400 text-xs hover:text-slate-600 transition-colors">
+										Zavřít
+									</button>
+									<button
+										onClick={handleSaveClick}
+										className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">
+										{modal.editId ? "Uložit změny" : "Vytvořit směnu"}
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

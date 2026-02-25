@@ -114,7 +114,7 @@ export default function JobPositionsPage() {
 	if (authLoading)
 		return (
 			<div className="flex h-screen items-center justify-center">
-				<Loader2 className="animate-spin text-blue-600" size={40} />
+				<Loader2 className="animate-spin text-brand-secondary" size={40} />
 			</div>
 		);
 
@@ -130,84 +130,116 @@ export default function JobPositionsPage() {
 
 	return (
 		<ProtectedRoute>
-			<div className="max-w-4xl mx-auto p-6 space-y-8">
-				<div className="flex items-center justify-between">
+			<div className="space-y-6 animate-in fade-in duration-500">
+				{/* HLAVIČKA */}
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 					<div>
-						<h1 className="text-3xl font-black text-slate-900 tracking-tight italic">
+						<h1 className="text-2xl font-bold text-slate-900 tracking-tight">
 							Pracovní pozice
 						</h1>
-						<p className="text-slate-500 font-medium font-bold italic">
+						<p className="text-slate-500 text-sm mt-1">
 							Definujte role v rámci vaší organizace.
 						</p>
 					</div>
 					<button
 						onClick={openAddModal}
-						className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95">
-						<Plus size={20} /> PŘIDAT POZICI
+						className="flex items-center justify-center gap-2 bg-brand-secondary hover:bg-brand-secondary-hover text-brand-text-on-primary px-5 py-2.5 rounded-xl font-medium shadow-lg transition-all active:scale-95">
+						<Plus size={18} /> Přidat pozici
 					</button>
 				</div>
 
-				{/* SEZNAM POZIC */}
-				<div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden font-bold italic">
-					<div className="divide-y divide-slate-100">
-						{positions.length === 0 && !loading && (
-							<div className="p-12 text-center text-slate-400">
-								Zatím nebyly vytvořeny žádné pozice.
-							</div>
-						)}
-						{positions.map((pos) => (
-							<div
-								key={pos.id}
-								className="flex items-center justify-between p-6 hover:bg-slate-50 transition-colors">
-								<div className="flex items-center gap-4">
-									<div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-										<Briefcase size={24} />
-									</div>
-									<div>
-										<div className="text-lg font-bold text-slate-900">
-											{pos.name}
+				{/* TABULKA */}
+				<div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
+					<table className="w-full min-w-[480px] text-left border-collapse">
+						<thead>
+							<tr className="bg-slate-50/50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+								<th className="px-6 py-4 font-semibold">Pozice</th>
+								<th className="px-6 py-4 font-semibold">Typ</th>
+								<th className="px-6 py-4 font-semibold text-right">Akce</th>
+							</tr>
+						</thead>
+						<tbody className="divide-y divide-slate-100">
+							{positions.map((pos) => (
+								<tr key={pos.id} className="hover:bg-slate-50/50 transition-colors">
+									<td className="px-6 py-4">
+										<div className="flex items-center gap-3">
+											<div className="h-10 w-10 rounded-full bg-brand-secondary/10 text-brand-secondary flex items-center justify-center shrink-0">
+												<Briefcase size={18} />
+											</div>
+											<span className="font-semibold text-slate-900 text-sm">
+												{pos.name}
+											</span>
 										</div>
-										<div
-											className={`text-xs font-black uppercase ${pos.isManagerial ? "text-purple-600" : "text-slate-400"}`}>
-											{pos.isManagerial
-												? "Manažerská pozice"
-												: "Standardní pozice"}
+									</td>
+									<td className="px-6 py-4">
+										<span
+											className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+												pos.isManagerial
+													? "bg-purple-100 text-purple-700"
+													: "bg-slate-100 text-slate-600"
+											}`}>
+											{pos.isManagerial ? "Manažerská" : "Standardní"}
+										</span>
+									</td>
+									<td className="px-6 py-4 text-right">
+										<div className="flex items-center justify-end gap-1">
+											<button
+												onClick={() => openEditModal(pos)}
+												className="p-2 text-slate-400 hover:text-brand-secondary hover:bg-brand-secondary/10 rounded-lg transition-all"
+												title="Upravit">
+												<Edit2 size={16} />
+											</button>
+											<button
+												onClick={() => openDeleteModal(pos)}
+												className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+												title="Smazat">
+												<Trash2 size={16} />
+											</button>
 										</div>
-									</div>
-								</div>
-								<div className="flex items-center gap-2">
-									<button
-										onClick={() => openEditModal(pos)}
-										className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
-										<Edit2 size={20} />
-									</button>
-									<button
-										onClick={() => openDeleteModal(pos)}
-										className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-										<Trash2 size={20} />
-									</button>
-								</div>
-							</div>
-						))}
-					</div>
+									</td>
+								</tr>
+							))}
+							{positions.length === 0 && !loading && (
+								<tr>
+									<td
+										colSpan={3}
+										className="px-6 py-12 text-center text-slate-400 text-sm">
+										Zatím nebyly vytvořeny žádné pozice.
+									</td>
+								</tr>
+							)}
+						</tbody>
+					</table>
 				</div>
 
 				{/* MODÁL PRO PŘIDÁNÍ / EDITACI */}
 				{isFormModalOpen && (
 					<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-						<div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative font-bold italic">
+						<div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative">
 							<button
 								onClick={() => setIsFormModalOpen(false)}
 								className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
 								<X size={24} />
 							</button>
-							<h2 className="text-2xl font-black text-slate-900 mb-6">
-								{editingPosition ? "Upravit pozici" : "Nová pozice"}
-							</h2>
-
-							<form onSubmit={handleSubmit} className="space-y-6">
+							<div className="flex items-center gap-3 mb-6">
+								<div className="p-3 bg-brand-secondary/10 text-brand-secondary rounded-2xl">
+									<Briefcase size={24} />
+								</div>
 								<div>
-									<label className="text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 block tracking-widest">
+									<h2 className="text-2xl font-bold text-slate-900">
+										{editingPosition ? "Upravit pozici" : "Nová pozice"}
+									</h2>
+									<p className="text-slate-500 text-sm">
+										{editingPosition
+											? "Upravte údaje pracovní pozice."
+											: "Zadejte název nové pracovní pozice."}
+									</p>
+								</div>
+							</div>
+
+							<form onSubmit={handleSubmit} className="space-y-4">
+								<div>
+									<label className="text-xs font-bold uppercase text-slate-500 mb-1 block">
 										Název pozice
 									</label>
 									<input
@@ -216,17 +248,17 @@ export default function JobPositionsPage() {
 										onChange={(e) =>
 											setFormData({ ...formData, name: e.target.value })
 										}
-										className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-blue-600/5 border border-transparent focus:border-blue-600/20 transition-all"
+										className="w-full p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-brand-secondary transition-all"
 										placeholder="např. Hlavní kuchař"
 									/>
 								</div>
 
-								<label className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors">
+								<label className="flex items-center justify-between p-4 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
 									<div>
-										<div className="font-bold text-slate-900 uppercase text-xs">
+										<div className="font-semibold text-slate-900 text-sm">
 											Manažerská práva
 										</div>
-										<div className="text-[10px] text-slate-400 font-bold uppercase italic">
+										<div className="text-xs text-slate-400 mt-0.5">
 											Může tato pozice schvalovat směny?
 										</div>
 									</div>
@@ -239,15 +271,23 @@ export default function JobPositionsPage() {
 												isManagerial: e.target.checked,
 											})
 										}
-										className="w-6 h-6 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
+										className="w-5 h-5 rounded border-slate-300 text-brand-secondary focus:ring-brand-secondary"
 									/>
 								</label>
 
-								<button
-									type="submit"
-									className="w-full py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl hover:bg-blue-700 transition-all">
-									{editingPosition ? "ULOŽIT ZMĚNY" : "VYTVOŘIT POZICI"}
-								</button>
+								<div className="flex gap-3 pt-2">
+									<button
+										type="button"
+										onClick={() => setIsFormModalOpen(false)}
+										className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors">
+										Zrušit
+									</button>
+									<button
+										type="submit"
+										className="flex-1 py-3 bg-brand-secondary text-brand-text-on-primary font-bold rounded-xl shadow-lg hover:bg-brand-secondary-hover transition-all">
+										{editingPosition ? "Uložit změny" : "Vytvořit pozici"}
+									</button>
+								</div>
 							</form>
 						</div>
 					</div>
@@ -256,29 +296,29 @@ export default function JobPositionsPage() {
 				{/* MODÁL PRO POTVRZENÍ SMAZÁNÍ */}
 				{isDeleteModalOpen && (
 					<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in zoom-in duration-200">
-						<div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center font-bold italic">
+						<div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
 							<div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
 								<AlertTriangle className="text-red-600" size={32} />
 							</div>
-							<h2 className="text-xl font-black text-slate-900 mb-2 italic">
+							<h2 className="text-xl font-bold text-slate-900 mb-2">
 								Opravdu smazat?
 							</h2>
-							<p className="text-slate-500 text-sm mb-8 italic">
+							<p className="text-slate-500 text-sm mb-8">
 								Pozice{" "}
-								<span className="text-slate-900 font-black italic underline">
+								<span className="text-slate-900 font-bold">
 									{positionToDelete?.name}
 								</span>{" "}
 								bude trvale odstraněna. Tuto akci nelze vzít zpět.
 							</p>
-							<div className="flex gap-3 font-bold italic">
+							<div className="flex gap-3">
 								<button
 									onClick={() => setIsDeleteModalOpen(false)}
-									className="flex-1 py-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors font-bold italic">
+									className="flex-1 py-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors font-bold">
 									Zrušit
 								</button>
 								<button
 									onClick={confirmDelete}
-									className="flex-1 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all font-bold italic">
+									className="flex-1 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all font-bold">
 									Smazat
 								</button>
 							</div>

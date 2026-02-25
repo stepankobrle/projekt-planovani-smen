@@ -48,14 +48,14 @@ export default function Sidebar({ userRole }: SidebarProps) {
 			{/* MOBILNÍ HAMBURGER TLAČÍTKO */}
 			<button
 				onClick={() => setIsMobileOpen(!isMobileOpen)}
-				className="fixed top-4 left-4 z-50 rounded-md bg-slate-900 p-2 text-white lg:hidden">
+				className="fixed top-4 left-4 z-50 rounded-md bg-brand-primary p-2 text-white lg:hidden">
 				{isMobileOpen ? <X size={20} /> : <Menu size={20} />}
 			</button>
 
 			{/* OVERLAY PRO MOBIL */}
 			{isMobileOpen && (
 				<div
-					className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+					className="fixed inset-0 z-40 bg-brand-primary lg:hidden"
 					onClick={() => setIsMobileOpen(false)}
 				/>
 			)}
@@ -63,7 +63,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 			{/* SIDEBAR CONTAINER */}
 			<div
 				className={cn(
-					"fixed inset-y-0 left-0 z-40 flex flex-col bg-slate-900 text-slate-300 border-r border-slate-800 transition-all duration-300",
+					"fixed inset-y-0 left-0 z-40 flex flex-col bg-brand-primary text-slate-300  transition-all duration-300",
 					isCollapsed ? "w-20" : "w-64",
 					isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
 					"lg:relative lg:z-0",
@@ -76,7 +76,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 					)}>
 					{!isCollapsed && (
 						<h1 className="text-xl font-bold text-white tracking-tight">
-							ShiftMaster<span className="text-blue-500">.</span>
+							ShiftMaster<span className="text-brand-secondary">.</span>
 						</h1>
 					)}
 					<button
@@ -104,12 +104,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
 										<button
 											onClick={() => toggleMenu(item.title)}
 											className={cn(
-												"w-full group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-800 hover:text-white transition-all",
+												"w-full group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-brand-grey hover:text-white transition-all",
 												isCollapsed && "justify-center",
 											)}>
 											<Icon
 												className={cn(
-													"h-5 w-5 text-slate-400 group-hover:text-blue-400",
+													"h-5 w-5 text-slate-400 group-hover:text-brand-secondary",
 													!isCollapsed && "mr-3",
 												)}
 											/>
@@ -137,8 +137,8 @@ export default function Sidebar({ userRole }: SidebarProps) {
 															className={cn(
 																"block rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
 																pathname === sub.href
-																	? "bg-blue-600/10 text-blue-400"
-																	: "text-slate-500 hover:text-white hover:bg-slate-800",
+																	? "bg-brand-secondary/10 text-brand-secondary"
+																	: "text-slate-500 hover:text-white hover:bg-brand-grey",
 															)}>
 															{sub.title}
 														</Link>
@@ -154,8 +154,8 @@ export default function Sidebar({ userRole }: SidebarProps) {
 											"group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all",
 											isCollapsed && "justify-center",
 											pathname === item.href
-												? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-												: "text-slate-400 hover:bg-slate-800 hover:text-white",
+												? "bg-brand-secondary text-white shadow-lg shadow-brand-primary/20"
+												: "text-slate-400 hover:bg-brand-grey hover:text-white",
 										)}>
 										<Icon
 											className={cn(
@@ -163,7 +163,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 												!isCollapsed && "mr-3",
 												pathname === item.href
 													? "text-white"
-													: "text-slate-500 group-hover:text-blue-400",
+													: "text-slate-500 group-hover:text-brand-secondary",
 											)}
 										/>
 										{!isCollapsed && <span>{item.title}</span>}
@@ -175,13 +175,13 @@ export default function Sidebar({ userRole }: SidebarProps) {
 				</nav>
 
 				{/* PATIČKA */}
-				<div className="p-4 border-t border-slate-800 bg-slate-900/50 space-y-3">
+				<div className="p-4 border-t border-brand-grey bg-brand-primary-hover/30 space-y-3">
 					<div
 						className={cn(
 							"flex items-center gap-3",
 							isCollapsed && "justify-center",
 						)}>
-						<div className="h-8 w-8 min-w-[32px] rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold">
+						<div className="h-8 w-8 min-w-[32px] rounded-lg bg-brand-secondary flex items-center justify-center text-brand-text-on-primary font-bold">
 							{userRole ? userRole[0] : "?"}
 						</div>
 						{!isCollapsed && (

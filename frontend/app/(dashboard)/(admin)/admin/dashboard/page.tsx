@@ -141,9 +141,10 @@ export default function AdminDashboard() {
 				new Date(b.startDatetime).getTime(),
 		);
 	const unassignedAll = allShifts.filter((s) => s.assignedUserId === null);
-	const unassignedUpcoming = unassignedAll
-		.filter((s) => new Date(s.startDatetime) > now)
-		.slice(0, 8);
+	const unassignedFuture = unassignedAll.filter(
+		(s) => new Date(s.startDatetime) > now,
+	);
+	const unassignedUpcoming = unassignedFuture.slice(0, 8);
 	const pendingVacations = vacations.filter((v) => v.status === "PENDING");
 	const schedStatus = schedule?.status ?? null;
 
@@ -196,9 +197,9 @@ export default function AdminDashboard() {
 						},
 						{
 							label: "Neobsazené směny",
-							value: unassignedAll.length,
+							value: unassignedFuture.length,
 							icon: CalendarX2,
-							color: unassignedAll.length > 0 ? "red" : "green",
+							color: unassignedFuture.length > 0 ? "red" : "green",
 						},
 						{
 							label: "Čekající dovolené",
@@ -216,7 +217,7 @@ export default function AdminDashboard() {
 				).map((stat) => {
 					const Icon = stat.icon;
 					const colorMap = {
-						blue: "bg-blue-50 text-blue-600",
+						blue: "bg-brand-secondary/10 text-brand-secondary",
 						red: "bg-red-50 text-red-600",
 						amber: "bg-amber-50 text-amber-600",
 						green: "bg-emerald-50 text-emerald-600",
@@ -248,7 +249,7 @@ export default function AdminDashboard() {
 					{/* KDO PRACUJE DNES */}
 					<div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 						<div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-							<CalendarDays size={16} className="text-blue-500" />
+							<CalendarDays size={16} className="text-brand-secondary" />
 							<h2 className="font-bold text-slate-900 text-sm">
 								Kdo pracuje dnes
 							</h2>
@@ -269,7 +270,7 @@ export default function AdminDashboard() {
 									<div
 										key={shift.id}
 										className="px-6 py-3 flex items-center gap-3">
-										<div className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 font-bold text-sm flex items-center justify-center flex-shrink-0">
+										<div className="h-8 w-8 rounded-full bg-brand-secondary/10 text-brand-secondary font-bold text-sm flex items-center justify-center flex-shrink-0">
 											{shift.assignedUser?.fullName?.[0]?.toUpperCase() ??
 												"?"}
 										</div>
@@ -313,9 +314,9 @@ export default function AdminDashboard() {
 							<h2 className="font-bold text-slate-900 text-sm">
 								Neobsazené směny
 							</h2>
-							{unassignedAll.length > 0 && (
+							{unassignedFuture.length > 0 && (
 								<span className="ml-1 text-[10px] font-black bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
-									{unassignedAll.length}
+									{unassignedFuture.length}
 								</span>
 							)}
 						</div>
@@ -359,9 +360,9 @@ export default function AdminDashboard() {
 										</div>
 									</div>
 								))}
-								{unassignedAll.length > 8 && (
+								{unassignedFuture.length > 8 && (
 									<div className="px-6 py-3 text-center text-xs text-slate-400">
-										+ {unassignedAll.length - 8} dalších neobsazených
+										+ {unassignedFuture.length - 8} dalších neobsazených
 									</div>
 								)}
 							</div>

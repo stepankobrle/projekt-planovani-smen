@@ -56,7 +56,7 @@ export default function SettingsPage() {
 	if (loading)
 		return (
 			<div className="flex h-screen items-center justify-center">
-				<Loader2 className="animate-spin text-blue-600" size={40} />
+				<Loader2 className="animate-spin text-brand-secondary" size={40} />
 			</div>
 		);
 
@@ -83,7 +83,7 @@ export default function SettingsPage() {
 					<button
 						onClick={handleSave}
 						disabled={saving}
-						className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95 disabled:bg-slate-300">
+						className="flex items-center gap-2 bg-brand-secondary hover:bg-brand-secondary-hover text-brand-text-on-primary px-6 py-3 rounded-2xl font-bold shadow-lg shadow-brand-secondary/20 transition-all active:scale-95 disabled:bg-slate-300">
 						{saving ? (
 							<Loader2 className="animate-spin" size={20} />
 						) : (
@@ -97,7 +97,7 @@ export default function SettingsPage() {
 					{/* Sekce: Provozní dny */}
 					<div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
 						<div className="flex items-center gap-3 mb-6">
-							<div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+							<div className="p-3 bg-brand-secondary/10 text-brand-secondary rounded-xl">
 								<Calendar size={24} />
 							</div>
 							<h2 className="text-xl font-bold text-slate-800">Provozní dny</h2>
@@ -122,7 +122,7 @@ export default function SettingsPage() {
 											workOnWeekends: e.target.checked,
 										})
 									}
-									className="w-6 h-6 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
+									className="w-6 h-6 rounded-lg border-slate-300 text-brand-secondary focus:ring-brand-secondary"
 								/>
 							</label>
 
@@ -144,7 +144,7 @@ export default function SettingsPage() {
 											workOnHolidays: e.target.checked,
 										})
 									}
-									className="w-6 h-6 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
+									className="w-6 h-6 rounded-lg border-slate-300 text-brand-secondary focus:ring-brand-secondary"
 								/>
 							</label>
 						</div>
@@ -178,7 +178,7 @@ export default function SettingsPage() {
 												minRestBetweenShifts: Number(e.target.value),
 											})
 										}
-										className="w-32 p-4 bg-slate-50 rounded-2xl font-bold text-xl text-blue-600 outline-none focus:ring-4 focus:ring-blue-600/5 transition-all"
+										className="w-32 p-4 bg-slate-50 rounded-2xl font-bold text-xl text-brand-secondary outline-none focus:ring-4 focus:ring-brand-secondary/5 transition-all"
 									/>
 									<div className="text-slate-400 font-medium italic text-sm">
 										V ČR je standardem 11 hodin.
@@ -186,7 +186,7 @@ export default function SettingsPage() {
 								</div>
 							</div>
 
-							<div className="flex gap-3 p-4 bg-blue-50 rounded-2xl text-blue-700 text-sm">
+							<div className="flex gap-3 p-4 bg-brand-secondary/10 rounded-2xl text-brand-secondary text-sm">
 								<Info size={20} className="shrink-0" />
 								<p className="font-medium">
 									Toto nastavení ovlivní validaci při ručním i automatickém
