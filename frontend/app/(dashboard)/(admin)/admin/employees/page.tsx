@@ -97,7 +97,9 @@ export default function EmployeesPage() {
 
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
-	const [employmentContracts, setEmploymentContracts] = useState<EmploymentContract[]>([]);
+	const [employmentContracts, setEmploymentContracts] = useState<
+		EmploymentContract[]
+	>([]);
 	const [statsMap, setStatsMap] = useState<Map<string, EmployeeStats>>(
 		new Map(),
 	);
@@ -240,7 +242,11 @@ export default function EmployeesPage() {
 		setError("");
 		const isEditMode = !!editingEmployee;
 		const url = isEditMode ? `/users/${editingEmployee!.id}` : "/users/invite";
-		const { jobPositionId: _pos, employmentContractId: _ec, ...rest } = formData;
+		const {
+			jobPositionId: _pos,
+			employmentContractId: _ec,
+			...rest
+		} = formData;
 		const payload = {
 			...rest,
 			targetHours: Number(formData.targetHours),
@@ -530,10 +536,10 @@ export default function EmployeesPage() {
 										{/* NAPLÁNOVÁNO */}
 										<td className="px-6 py-4">
 											<div className="text-sm font-bold text-slate-800">
-												{stats.scheduledHours.toFixed(1)} h
+												{stats.totalHours.toFixed(1)} h
 											</div>
 											<div className="text-[10px] text-slate-400 mt-0.5">
-												celkem {stats.totalHours.toFixed(1)} h
+												{stats.scheduledHours.toFixed(1)} h dnes
 											</div>
 										</td>
 
@@ -644,7 +650,10 @@ export default function EmployeesPage() {
 
 							{loadingModal ? (
 								<div className="flex items-center justify-center py-10">
-									<Loader2 className="animate-spin text-brand-secondary" size={28} />
+									<Loader2
+										className="animate-spin text-brand-secondary"
+										size={28}
+									/>
 								</div>
 							) : (
 								<>

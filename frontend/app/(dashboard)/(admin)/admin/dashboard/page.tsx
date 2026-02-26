@@ -186,7 +186,7 @@ export default function AdminDashboard() {
 			</div>
 
 			{/* QUICK STATS */}
-			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+			<div className="grid grid-cols-4 gap-2 sm:gap-4">
 				{(
 					[
 						{
@@ -225,15 +225,15 @@ export default function AdminDashboard() {
 					return (
 						<div
 							key={stat.label}
-							className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-							<div className={`p-3 rounded-xl ${colorMap[stat.color]}`}>
-								<Icon size={20} />
+							className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-5 shadow-sm flex flex-col sm:flex-row items-center gap-1 sm:gap-4">
+							<div className={`p-1.5 sm:p-3 rounded-lg sm:rounded-xl shrink-0 ${colorMap[stat.color]}`}>
+								<Icon size={16} />
 							</div>
 							<div>
-								<div className="text-2xl font-bold text-slate-900">
+								<div className="text-base sm:text-2xl font-bold text-slate-900 leading-none">
 									{stat.value}
 								</div>
-								<div className="text-xs text-slate-500 font-medium mt-0.5">
+								<div className="hidden sm:block text-xs text-slate-500 font-medium mt-0.5 leading-tight">
 									{stat.label}
 								</div>
 							</div>
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
 				<div className="lg:col-span-3 space-y-6">
 					{/* KDO PRACUJE DNES */}
 					<div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-						<div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+						<div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-2">
 							<CalendarDays size={16} className="text-brand-secondary" />
 							<h2 className="font-bold text-slate-900 text-sm">
 								Kdo pracuje dnes
@@ -261,7 +261,7 @@ export default function AdminDashboard() {
 							</span>
 						</div>
 						{todayShifts.length === 0 ? (
-							<div className="px-6 py-10 text-center text-slate-400 text-sm">
+							<div className="px-4 sm:px-6 py-8 sm:py-10 text-center text-slate-400 text-sm">
 								Dnes nikdo neplánuje.
 							</div>
 						) : (
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
 								{todayShifts.map((shift) => (
 									<div
 										key={shift.id}
-										className="px-6 py-3 flex items-center gap-3">
+										className="px-3 sm:px-6 py-3 flex items-center gap-3">
 										<div className="h-8 w-8 rounded-full bg-brand-secondary/10 text-brand-secondary font-bold text-sm flex items-center justify-center flex-shrink-0">
 											{shift.assignedUser?.fullName?.[0]?.toUpperCase() ??
 												"?"}
@@ -309,7 +309,7 @@ export default function AdminDashboard() {
 
 					{/* NEJBLIŽŠÍ NEOBSAZENÉ SMĚNY */}
 					<div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-						<div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+						<div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-2">
 							<CalendarX2 size={16} className="text-red-400" />
 							<h2 className="font-bold text-slate-900 text-sm">
 								Neobsazené směny
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
 							)}
 						</div>
 						{unassignedUpcoming.length === 0 ? (
-							<div className="px-6 py-10 text-center text-slate-400 text-sm">
+							<div className="px-4 sm:px-6 py-8 sm:py-10 text-center text-slate-400 text-sm">
 								Všechny nadcházející směny jsou obsazeny.
 							</div>
 						) : (
@@ -329,7 +329,7 @@ export default function AdminDashboard() {
 								{unassignedUpcoming.map((shift) => (
 									<div
 										key={shift.id}
-										className="px-6 py-3 flex items-center gap-3">
+										className="px-3 sm:px-6 py-3 flex items-center gap-3">
 										<div className="h-8 w-8 rounded-full bg-red-50 text-red-400 flex items-center justify-center flex-shrink-0">
 											<AlertCircle size={14} />
 										</div>
@@ -361,7 +361,7 @@ export default function AdminDashboard() {
 									</div>
 								))}
 								{unassignedFuture.length > 8 && (
-									<div className="px-6 py-3 text-center text-xs text-slate-400">
+									<div className="px-4 sm:px-6 py-3 text-center text-xs text-slate-400">
 										+ {unassignedFuture.length - 8} dalších neobsazených
 									</div>
 								)}
@@ -374,7 +374,7 @@ export default function AdminDashboard() {
 				<div className="lg:col-span-2 space-y-6">
 					{/* ČEKAJÍCÍ DOVOLENÉ */}
 					<div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-						<div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+						<div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-2">
 							<Clock size={16} className="text-amber-500" />
 							<h2 className="font-bold text-slate-900 text-sm">
 								Čekající dovolené
@@ -386,7 +386,7 @@ export default function AdminDashboard() {
 							)}
 						</div>
 						{pendingVacations.length === 0 ? (
-							<div className="px-6 py-10 text-center text-slate-400 text-sm">
+							<div className="px-4 sm:px-6 py-8 sm:py-10 text-center text-slate-400 text-sm">
 								Žádné čekající žádosti.
 							</div>
 						) : (
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
 									</div>
 								))}
 								{pendingVacations.length > 5 && (
-									<div className="px-6 py-3 text-center text-xs text-slate-400">
+									<div className="px-4 sm:px-6 py-3 text-center text-xs text-slate-400">
 										+ {pendingVacations.length - 5} dalších
 									</div>
 								)}
@@ -433,7 +433,7 @@ export default function AdminDashboard() {
 
 					{/* UPOZORNĚNÍ — PLACEHOLDER */}
 					<div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-						<div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+						<div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-2">
 							<Bell size={16} className="text-slate-400" />
 							<h2 className="font-bold text-slate-900 text-sm">
 								Upozornění
