@@ -2,18 +2,19 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
 	ChevronDown,
 	ChevronRight,
 	Menu,
 	X,
-	ChevronLeft,
 	PanelLeftClose,
 	PanelLeftOpen,
+	LogOut,
 } from "lucide-react";
 import { menuItems, UserRole } from "@/config/menu";
 import { cn } from "@/lib/utils";
+import Cookies from "js-cookie";
 
 interface SidebarProps {
 	userRole: UserRole;
@@ -21,15 +22,21 @@ interface SidebarProps {
 
 export default function Sidebar({ userRole }: SidebarProps) {
 	const pathname = usePathname();
+	const router = useRouter();
 	const [openMenus, setOpenMenus] = useState<string[]>([]);
-	const [isCollapsed, setIsCollapsed] = useState(false); // Pro desktop
-	const [isMobileOpen, setIsMobileOpen] = useState(false); // Pro mobil
+	const [isCollapsed, setIsCollapsed] = useState(false);
+	const [isMobileOpen, setIsMobileOpen] = useState(false);
 
 	const toggleMenu = (title: string) => {
-		if (isCollapsed) setIsCollapsed(false); // Automaticky otevřít při kliku na podmenu
+		if (isCollapsed) setIsCollapsed(false);
 		setOpenMenus((prev) =>
 			prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title],
 		);
+	};
+
+	const handleLogout = () => {
+		Cookies.remove("token");
+		router.push("/login");
 	};
 
 	const filteredMenu = menuItems.filter((item) =>
@@ -38,17 +45,17 @@ export default function Sidebar({ userRole }: SidebarProps) {
 
 	return (
 		<>
-			{/* MOBILNÍ HAMBURGER TLAČÍTKO - Viditelné jen na mobilu */}
+			{/* MOBILNÍ HAMBURGER TLAČÍTKO */}
 			<button
 				onClick={() => setIsMobileOpen(!isMobileOpen)}
-				className="fixed top-4 left-4 z-50 rounded-md bg-slate-900 p-2 text-white lg:hidden">
+				className="fixed top-4 left-4 z-50 rounded-md bg-brand-primary p-2 text-white lg:hidden">
 				{isMobileOpen ? <X size={20} /> : <Menu size={20} />}
 			</button>
 
-			{/* OVERLAY PRO MOBIL - Ztmaví pozadí, když je menu otevřené */}
+			{/* OVERLAY PRO MOBIL */}
 			{isMobileOpen && (
 				<div
-					className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+					className="fixed inset-0 z-40 bg-brand-primary lg:hidden"
 					onClick={() => setIsMobileOpen(false)}
 				/>
 			)}
@@ -56,10 +63,10 @@ export default function Sidebar({ userRole }: SidebarProps) {
 			{/* SIDEBAR CONTAINER */}
 			<div
 				className={cn(
-					"fixed inset-y-0 left-0 z-40 flex flex-col bg-slate-900 text-slate-300 border-r border-slate-800 transition-all duration-300",
-					isCollapsed ? "w-20" : "w-64", // Šířka na desktopu
-					isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", // Schování na mobilu
-					"lg:relative lg:z-0", // Na desktopu se chová jako běžný blok
+					"fixed inset-y-0 left-0 z-40 flex flex-col bg-brand-primary text-slate-300  transition-all duration-300",
+					isCollapsed ? "w-20" : "w-64",
+					isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+					"lg:relative lg:z-0",
 				)}>
 				{/* LOGO SEKCE */}
 				<div
@@ -69,7 +76,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 					)}>
 					{!isCollapsed && (
 						<h1 className="text-xl font-bold text-white tracking-tight">
-							ShiftMaster<span className="text-blue-500">.</span>
+							ShiftMaster<span className="text-brand-secondary">.</span>
 						</h1>
 					)}
 					<button
@@ -97,12 +104,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
 										<button
 											onClick={() => toggleMenu(item.title)}
 											className={cn(
-												"w-full group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-800 hover:text-white transition-all",
+												"w-full group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-brand-grey hover:text-white transition-all",
 												isCollapsed && "justify-center",
 											)}>
 											<Icon
 												className={cn(
-													"h-5 w-5 text-slate-400 group-hover:text-blue-400",
+													"h-5 w-5 text-slate-400 group-hover:text-brand-secondary",
 													!isCollapsed && "mr-3",
 												)}
 											/>
@@ -118,7 +125,6 @@ export default function Sidebar({ userRole }: SidebarProps) {
 											)}
 										</button>
 
-										{/* SUBMENU - Skryté, pokud je sidebar zmenšený a není otevřený */}
 										{!isCollapsed && isMenuOpen && (
 											<div className="mt-1 ml-9 space-y-1 border-l border-slate-700 pl-2">
 												{item
@@ -127,12 +133,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
 														<Link
 															key={sub.href}
 															href={sub.href}
-															onClick={() => setIsMobileOpen(false)} // Zavřít na mobilu po kliku
+															onClick={() => setIsMobileOpen(false)}
 															className={cn(
 																"block rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
 																pathname === sub.href
-																	? "bg-blue-600/10 text-blue-400"
-																	: "text-slate-500 hover:text-white hover:bg-slate-800",
+																	? "bg-brand-secondary/10 text-brand-secondary"
+																	: "text-slate-500 hover:text-white hover:bg-brand-grey",
 															)}>
 															{sub.title}
 														</Link>
@@ -148,8 +154,8 @@ export default function Sidebar({ userRole }: SidebarProps) {
 											"group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all",
 											isCollapsed && "justify-center",
 											pathname === item.href
-												? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-												: "text-slate-400 hover:bg-slate-800 hover:text-white",
+												? "bg-brand-secondary text-white shadow-lg shadow-brand-primary/20"
+												: "text-slate-400 hover:bg-brand-grey hover:text-white",
 										)}>
 										<Icon
 											className={cn(
@@ -157,7 +163,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 												!isCollapsed && "mr-3",
 												pathname === item.href
 													? "text-white"
-													: "text-slate-500 group-hover:text-blue-400",
+													: "text-slate-500 group-hover:text-brand-secondary",
 											)}
 										/>
 										{!isCollapsed && <span>{item.title}</span>}
@@ -169,13 +175,13 @@ export default function Sidebar({ userRole }: SidebarProps) {
 				</nav>
 
 				{/* PATIČKA */}
-				<div className="p-4 border-t border-slate-800 bg-slate-900/50">
+				<div className="p-4 border-t border-brand-grey bg-brand-primary-hover/30 space-y-3">
 					<div
 						className={cn(
 							"flex items-center gap-3",
 							isCollapsed && "justify-center",
 						)}>
-						<div className="h-8 w-8 min-w-[32px] rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold">
+						<div className="h-8 w-8 min-w-[32px] rounded-lg bg-brand-secondary flex items-center justify-center text-brand-text-on-primary font-bold">
 							{userRole ? userRole[0] : "?"}
 						</div>
 						{!isCollapsed && (
@@ -186,6 +192,18 @@ export default function Sidebar({ userRole }: SidebarProps) {
 							</div>
 						)}
 					</div>
+
+					<button
+						onClick={handleLogout}
+						className={cn(
+							"w-full group flex items-center rounded-md px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-900/30 hover:text-red-400 transition-all",
+							isCollapsed && "justify-center",
+						)}>
+						<LogOut
+							className={cn("h-5 w-5 flex-shrink-0", !isCollapsed && "mr-3")}
+						/>
+						{!isCollapsed && <span>Odhlásit se</span>}
+					</button>
 				</div>
 			</div>
 		</>

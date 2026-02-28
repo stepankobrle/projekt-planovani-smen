@@ -1,57 +1,49 @@
 // backend/src/shifts/availability.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service'; // Zkontroluj cestu k tvé PrismaService
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
-import { Availability } from '@prisma/client';
 
 @Injectable()
 export class AvailabilityService {
   constructor(private prisma: PrismaService) {}
 
-  async createOrUpdate(dto: CreateAvailabilityDto) {
-    // 1. Nejdříve si ověříme, že směna (krabička) existuje
+  async setAvailability(dto: CreateAvailabilityDto) {
+    // 1. Najdeme směnu I S JEJÍ SKUPINOU (ScheduleGroup)
     const shift = await this.prisma.shift.findUnique({
       where: { id: dto.shiftId },
+      include: { scheduleGroup: true }, // <--- Důležité!
     });
 
-    if (!shift) {
-      throw new NotFoundException('Směna nebyla nalezena.');
+    if (!shift) throw new NotFoundException('Směna nenalezena');
+    if (!shift.scheduleGroup || shift.scheduleGroup.status !== 'PREFERENCES') {
+      throw new ForbiddenException(
+        'Tento měsíc již není otevřený pro úpravy preferencí.',
+      );
     }
-
-    // 2. Použijeme logiku: Pokud uživatel už pro tuto směnu volbu poslal, aktualizujeme ji.
-    // Jinak vytvoříme novou.
-    const existing = await this.prisma.availability.findFirst({
-      where: {
-        userId: dto.userId,
-        shiftId: dto.shiftId,
-      },
+    const existingEntry = await this.prisma.availability.findFirst({
+      where: { userId: dto.userId, shiftId: dto.shiftId },
     });
 
-    if (existing) {
+    if (existingEntry) {
       return this.prisma.availability.update({
-        where: { id: existing.id },
+        where: { id: existingEntry.id },
         data: { type: dto.type },
       });
+    } else {
+      return this.prisma.availability.create({
+        data: {
+          userId: dto.userId,
+          shiftId: dto.shiftId,
+          type: dto.type,
+          startDatetime: shift.startDatetime,
+          endDatetime: shift.endDatetime,
+          shiftTypeId: shift.shiftTypeId,
+        },
+      });
     }
-
-    // 3. Vytvoření nové preference (kopírujeme časy ze směny pro snazší výpočty algoritmu)
-    return this.prisma.availability.create({
-      data: {
-        userId: dto.userId,
-        shiftId: dto.shiftId,
-        type: dto.type,
-        startDatetime: shift.startDatetime,
-        endDatetime: shift.endDatetime,
-        shiftTypeId: shift.shiftTypeId,
-      },
-    });
-  }
-
-  // Pomocná funkce pro admina, aby viděl všechny "barevné buňky"
-  async findAllByShift(shiftId: string) {
-    return this.prisma.availability.findMany({
-      where: { shiftId },
-      include: { user: true },
-    });
   }
 }

@@ -1,28 +1,38 @@
-// app/(dashboard)/layout.tsx
+"use client";
+
 import Sidebar from "@/app/components/Sidebar";
 import Header from "@/app/components/Header";
 import { UserRole } from "@/config/menu";
+import ProtectedRoute, { useAuth } from "@/app/components/ProtectedRoute";
 
 export default function DashboardLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	// Pro vývoj stále mockujeme roli
-	const userRole = UserRole.ADMIN;
+	return (
+		<ProtectedRoute>
+			<DashboardContent>{children}</DashboardContent>
+		</ProtectedRoute>
+	);
+}
+
+// Vnitřní část, která už má přístup k roli z ProtectedRoute
+function DashboardContent({ children }: { children: React.ReactNode }) {
+	const { role } = useAuth();
+
+	// Převod stringu z cookie na tvůj Enum (UserRole.ADMIN nebo UserRole.EMPLOYEE)
+	const userRole = role === "ADMIN" ? UserRole.ADMIN : UserRole.EMPLOYEE;
 
 	return (
-		<div className="flex h-screen w-full bg-slate-50 overflow-hidden">
-			{/* SIDEBAR - fixní šířka (nebo skládací) */}
+		<div className="flex h-screen w-full bg-brand-primary overflow-hidden text-slate-900">
+			{/* Sidebar se teď přizpůsobí reálné roli z DB */}
 			<Sidebar userRole={userRole} />
 
-			{/* HLAVNÍ ČÁST - Header + Obsah */}
 			<div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-				{/* HORNÍ MENU */}
 				<Header userRole={userRole} />
 
-				{/* SAMOTNÝ OBSAH STRÁNKY */}
-				<main className="flex-1 overflow-y-auto p-4 md:p-8">
+				<main className="flex-1 overflow-y-auto p-4 md:p-8 mb-3 mr-3 bg-brand-surface border-6 border-brand-primary rounded-2xl">
 					<div className="mx-auto max-w-7xl">{children}</div>
 				</main>
 			</div>

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

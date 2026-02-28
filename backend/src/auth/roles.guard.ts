@@ -13,6 +13,13 @@ export class RolesGuard implements CanActivate {
     if (!requiredRoles) return true;
 
     const { user } = context.switchToHttp().getRequest();
+    if (!user || !user.role) {
+      console.error(
+        'RolesGuard: User not found in request. Did you use JwtAuthGuard?',
+      );
+      return false;
+    }
+
     return requiredRoles.includes(user.role);
   }
 }

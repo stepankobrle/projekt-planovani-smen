@@ -6,142 +6,140 @@ import {
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '@prisma/client';
 import * as crypto from 'crypto';
-import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
-//Služba autentikace
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private readonly mailerService: MailerService,
   ) {}
 
   async signIn(email: string, password: string) {
     const user = await this.prisma.profile.findUnique({
       where: { email },
+      include: { jobPosition: true },
     });
 
-    if (user && (await bcrypt.compare(password, user.password))) {
-      const payload = { sub: user.id, email: user.email, role: user.role };
-
-      return {
-        access_token: await this.jwtService.signAsync(payload),
-        user: {
-          fullName: user.fullName,
-          role: user.role,
-        },
-      };
-    }
-    throw new UnauthorizedException('Chybné přihlašovací údaje');
-  }
-
-  // Pozvání nového uživatele
-  async inviteUser(dto: {
-    email: string;
-    fullName: string;
-    role: UserRole;
-    targetHours: number;
-    locationId?: number;
-    positionId?: number;
-  }) {
-    const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date();
-    expires.setHours(expires.getHours() + 24); // Expirace za 24 hodin
-
-    const existingUser = await this.prisma.profile.findUnique({
-      where: { email: dto.email },
-    });
-
-    if (existingUser) {
-      if (existingUser.isActivated) {
-        throw new BadRequestException(
-          'Uživatel s tímto e-mailem je již aktivní.',
-        );
-      }
-      await this.prisma.profile.update({
-        where: { email: dto.email },
-        data: {
-          fullName: dto.fullName,
-          role: dto.role,
-          targetHoursPerMonth: dto.targetHours,
-          invitationToken: token,
-          invitationExpires: expires,
-          locationId: dto.locationId || null,
-          positionId: dto.positionId || null,
-        },
-      });
-    } else {
-      await this.prisma.profile.create({
-        data: {
-          email: dto.email,
-          fullName: dto.fullName,
-          role: dto.role,
-          targetHoursPerMonth: dto.targetHours,
-          invitationToken: token,
-          invitationExpires: expires,
-          isActivated: false,
-          locationId: dto.locationId || null,
-          positionId: dto.positionId || null,
-        },
-      });
+    if (!user || !(await bcrypt.compare(password, user.password ?? ''))) {
+      throw new UnauthorizedException('Chybné údaje');
     }
 
-    const invitationLink = `http://localhost:3000/set-password?token=${token}`;
+    const effectiveRole = user.jobPosition?.isManagerial ? 'ADMIN' : user.role;
+    const payload = {
+      sub: user.id,
+      id: user.id,
+      email: user.email,
+      role: effectiveRole,
+      locationId: user.locationId,
+      fullName: user.fullName,
+    };
 
-    await this.mailerService.sendMail({
-      to: dto.email,
-      subject: 'Pozvánka do systému plánování směn',
-      html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Vítejte v týmu!</h2>
-          <p>Byl vám vytvořen účet pro správu směn.</p>
-          <p>Klikněte na tlačítko níže pro nastavení hesla:</p>
-          <a href="${invitationLink}" 
-             style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-             Aktivovat účet
-          </a>
-          <p style="color: gray; font-size: 12px; margin-top: 20px;">
-            Platnost tohoto odkazu vyprší za 24 hodin.
-          </p>
-        </div>
-      `,
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_SECRET,
+      expiresIn: '15m',
     });
+
+    const refreshToken = await this.generateRefreshToken(user.id);
 
     return {
-      message:
-        'Zaměstnanec byl úspěšně vytvořen a pozvánka odeslána na e-mail.',
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        role: effectiveRole,
+        locationId: user.locationId,
+      },
     };
   }
 
-  //Aktivace účtu
-  async activateAccount(token: string, newPassword: string) {
-    const user = await this.prisma.profile.findUnique({
-      where: { invitationToken: token },
+  private async generateRefreshToken(userId: string): Promise<string> {
+    const token = crypto.randomBytes(40).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await this.prisma.refreshToken.create({
+      data: { token, userId, expiresAt },
     });
 
-    if (!user) throw new UnauthorizedException('Neplatný nebo vypršelý token');
-    // Kontrola expirace
-    const now = new Date();
-    if (user.invitationExpires && now > user.invitationExpires) {
-      throw new UnauthorizedException(
-        'Platnost odkazu vypršela. Požádejte admina o nové pozvání.',
-      );
+    return token;
+  }
+
+  async refreshTokens(refreshToken: string) {
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+      include: { user: { include: { jobPosition: true } } },
+    });
+
+    if (!stored || stored.expiresAt < new Date()) {
+      if (stored) {
+        await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+      }
+      throw new UnauthorizedException('Refresh token expiroval nebo je neplatný.');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Rotace tokenu — starý smažeme, nový vytvoříme
+    await this.prisma.refreshToken.delete({ where: { id: stored.id } });
 
+    const user = stored.user;
+    const effectiveRole = user.jobPosition?.isManagerial ? 'ADMIN' : user.role;
+    const payload = {
+      sub: user.id,
+      id: user.id,
+      email: user.email,
+      role: effectiveRole,
+      locationId: user.locationId,
+      fullName: user.fullName,
+    };
+
+    const newAccessToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_SECRET,
+      expiresIn: '15m',
+    });
+
+    const newRefreshToken = await this.generateRefreshToken(user.id);
+
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+  }
+
+  async generateSseToken(userId: string): Promise<string> {
+    return this.jwtService.signAsync(
+      { id: userId, type: 'sse' },
+      { secret: process.env.JWT_SECRET, expiresIn: '5m' },
+    );
+  }
+
+  async logout(refreshToken: string) {
+    await this.prisma.refreshToken.deleteMany({
+      where: { token: refreshToken },
+    });
+  }
+
+  async activateAccount(token: string, password: string) {
+    const user = await this.prisma.profile.findFirst({
+      where: { invitationToken: token },
+    });
+    if (!user) {
+      throw new BadRequestException('Neplatný nebo již použitý aktivační odkaz.');
+    }
+    if (user.isActivated) {
+      throw new BadRequestException('Účet je již aktivní.');
+    }
+    if (user.invitationExpires && new Date() > user.invitationExpires) {
+      throw new BadRequestException('Platnost odkazu vypršela. Požádejte o nové pozvání.');
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
     await this.prisma.profile.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
         isActivated: true,
         invitationToken: null,
+        invitationExpires: null,
       },
     });
 
-    return { message: 'Účet byl úspěšně aktivován. Nyní se můžete přihlásit.' };
+    return { message: 'Účet úspěšně aktivován! Nyní se můžeš přihlásit.' };
   }
 }

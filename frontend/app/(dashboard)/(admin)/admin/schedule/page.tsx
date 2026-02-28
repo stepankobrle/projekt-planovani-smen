@@ -1,0 +1,217 @@
+"use client";
+
+import React, { useEffect, useState, useCallback } from "react";
+import api from "@/lib/api";
+import Link from "next/link";
+import { useAuth } from "@/app/components/ProtectedRoute";
+import dynamic from "next/dynamic";
+
+interface ScheduleGroup {
+	id: string;
+	name: string;
+	status: "DRAFT" | "OPEN" | "PUBLISHED";
+	dateFrom: string;
+	dateTo: string;
+}
+
+export default function UnifiedSchedulePage() {
+	const { role } = useAuth();
+	const [groups, setGroups] = useState<ScheduleGroup[]>([]);
+	const [loading, setLoading] = useState(true);
+
+	// Stavy pro admin modál
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [newName, setNewName] = useState("");
+	const [newDateFrom, setNewDateFrom] = useState("");
+	const [newDateTo, setNewDateTo] = useState("");
+
+	const fetchGroups = useCallback(async () => {
+		try {
+			const res = await api.get("/schedule-groups");
+			setGroups(res.data);
+			setLoading(false);
+		} catch (err) {
+			console.error("Chyba při načítání:", err);
+			setLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		fetchGroups();
+	}, [fetchGroups]);
+
+	const handleCreate = async (e: React.FormEvent) => {
+		e.preventDefault();
+		try {
+			await api.post("/schedule-groups", {
+				name: newName,
+				dateFrom: new Date(newDateFrom).toISOString(),
+				dateTo: new Date(newDateTo).toISOString(),
+			});
+			setIsModalOpen(false);
+			fetchGroups(); // Refresh
+		} catch (err: any) {
+			alert(err.response?.data?.message || "Chyba při vytváření");
+		}
+	};
+
+	if (loading)
+		return (
+			<div className="p-10 text-center font-bold text-slate-500">
+				Načítání rozvrhů...
+			</div>
+		);
+
+	return (
+		<div className="min-h-screen bg-brand-surface p-4 md:p-8 text-slate-900">
+			<div className="max-w-5xl mx-auto">
+				<div className="flex justify-between items-center mb-8">
+					<div>
+						<h1 className="text-3xl font-black text-gray-900 uppercase">
+							{role === "ADMIN" ? "Správa rozvrhů" : "Moje směny"}
+						</h1>
+						<p className="text-gray-500 text-sm">
+							{role === "ADMIN"
+								? "Vytvářejte a spravujte měsíční plány"
+								: "Přehled vypsaných rozvrhů"}
+						</p>
+					</div>
+					{role === "ADMIN" && (
+						<button
+							onClick={() => setIsModalOpen(true)}
+							className="bg-brand-secondary text-brand-text-on-primary px-6 py-2 rounded-xl font-bold hover:bg-brand-secondary-hover transition shadow-lg text-sm">
+							+ NOVÝ MĚSÍC
+						</button>
+					)}
+				</div>
+
+				<div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+					<table className="w-full text-left">
+						<thead className="bg-gray-50 border-b border-gray-100">
+							<tr>
+								<th className="p-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+									Název
+								</th>
+								<th className="p-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+									Období
+								</th>
+								<th className="p-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+									Status
+								</th>
+								<th className="p-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+									Akce
+								</th>
+							</tr>
+						</thead>
+						<tbody className="divide-y divide-gray-50 font-medium">
+							{groups
+								.filter((g) => role === "ADMIN" || g.status !== "DRAFT") // Zaměstnanci nevidí drafty
+								.map((group) => (
+									<tr
+										key={group.id}
+										className="hover:bg-gray-50 transition-colors">
+										<td className="p-4 font-bold text-slate-800">
+											{group.name}
+										</td>
+										<td className="p-4 text-sm text-gray-500">
+											{new Date(group.dateFrom).toLocaleDateString("cs-CZ")} -{" "}
+											{new Date(group.dateTo).toLocaleDateString("cs-CZ")}
+										</td>
+										<td className="p-4">
+											<span
+												className={`text-[10px] font-black px-2 py-1 rounded-md uppercase ${
+													group.status === "PUBLISHED"
+														? "bg-green-100 text-green-600"
+														: group.status === "OPEN"
+															? "bg-brand-secondary/15 text-brand-secondary"
+															: "bg-orange-100 text-orange-600"
+												}`}>
+												{group.status}
+											</span>
+										</td>
+										<td className="p-4 text-right">
+											<Link
+												href={`/schedule/${group.id}`}
+												className="inline-block bg-slate-100 hover:bg-brand-secondary hover:text-brand-text-on-primary text-slate-600 px-4 py-1.5 rounded-lg text-xs font-black transition-all uppercase tracking-tighter">
+												{role === "ADMIN" ? "Spravovat" : "Zobrazit"}
+											</Link>
+										</td>
+									</tr>
+								))}
+						</tbody>
+					</table>
+					{groups.length === 0 && (
+						<div className="p-10 text-center text-gray-400 italic text-sm">
+							Zatím žádné rozvrhy.
+						</div>
+					)}
+				</div>
+			</div>
+
+			{/* MODÁL PRO VYTVOŘENÍ */}
+			{isModalOpen && (
+				<div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+					<div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-slate-100">
+						<h2 className="text-2xl font-black mb-6 uppercase tracking-tight text-slate-800">
+							Nový rozvrh
+						</h2>
+						<form onSubmit={handleCreate} className="space-y-4">
+							<div>
+								<label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">
+									Název
+								</label>
+								<input
+									type="text"
+									required
+									value={newName}
+									onChange={(e) => setNewName(e.target.value)}
+									placeholder="Např. Březen 2026"
+									className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
+								/>
+							</div>
+							<div className="grid grid-cols-2 gap-4">
+								<div>
+									<label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">
+										Od
+									</label>
+									<input
+										type="date"
+										required
+										value={newDateFrom}
+										onChange={(e) => setNewDateFrom(e.target.value)}
+										className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm"
+									/>
+								</div>
+								<div>
+									<label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">
+										Do
+									</label>
+									<input
+										type="date"
+										required
+										value={newDateTo}
+										onChange={(e) => setNewDateTo(e.target.value)}
+										className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm"
+									/>
+								</div>
+							</div>
+							<div className="flex gap-3 mt-8">
+								<button
+									type="button"
+									onClick={() => setIsModalOpen(false)}
+									className="flex-1 py-3 font-bold text-slate-400 hover:text-slate-600 transition uppercase text-xs tracking-widest">
+									Zrušit
+								</button>
+								<button
+									type="submit"
+									className="flex-1 py-3 bg-brand-secondary text-brand-text-on-primary font-bold rounded-xl hover:bg-brand-secondary-hover transition shadow-lg uppercase text-xs tracking-widest">
+									Vytvořit
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
