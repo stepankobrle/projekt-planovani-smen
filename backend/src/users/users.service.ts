@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class UsersService {
@@ -13,6 +14,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly mailerService: MailerService,
     private readonly config: ConfigService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async inviteUser(dto: InviteUserDto, adminId: string) {
@@ -93,11 +95,16 @@ export class UsersService {
       `,
     });
 
+    const created = await this.prisma.profile.findUnique({ where: { email: dto.email }, select: { id: true } });
+    if (created) {
+      await this.auditLog.log('INVITE_USER', 'Profile', created.id, adminId, { email: dto.email, role: dto.role });
+    }
+
     return { message: 'Pozvánka odeslána.' };
   }
 
   // Všechny aktivní uživatelé
-  async findAll(adminId: string) {
+  async findAll(adminId: string, skip = 0, take = 50) {
     const adminProfile = await this.prisma.profile.findUnique({
       where: { id: adminId },
       select: { locationId: true },
@@ -115,9 +122,9 @@ export class UsersService {
         jobPosition: true,
         employmentContract: true,
       },
-      orderBy: {
-        fullName: 'asc',
-      },
+      orderBy: { fullName: 'asc' },
+      skip,
+      take,
     });
   }
 
@@ -261,11 +268,11 @@ export class UsersService {
   async remove(id: string | number, adminId: string) {
     const adminLocationId = await this.getAdminLocationId(adminId);
     await this.verifyUserAccess(String(id), adminLocationId);
-    return this.prisma.profile.update({
+    const result = await this.prisma.profile.update({
       where: { id: String(id) },
-      data: {
-        isActivated: false,
-      },
+      data: { isActivated: false },
     });
+    await this.auditLog.log('DEACTIVATE_USER', 'Profile', String(id), adminId);
+    return result;
   }
 }

@@ -45,8 +45,16 @@ export class NotificationsController {
 
   @UseGuards(AuthGuard)
   @Get()
-  findMy(@Request() req: { user: { id: string } }) {
-    return this.notificationsService.getMyNotifications(req.user.id);
+  findMy(
+    @Request() req: { user: { id: string } },
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.notificationsService.getMyNotifications(
+      req.user.id,
+      skip ? Number(skip) : 0,
+      take ? Number(take) : 20,
+    );
   }
 
   @UseGuards(AuthGuard)

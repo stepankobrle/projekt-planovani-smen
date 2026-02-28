@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { ShiftStatus, Prisma } from '@prisma/client';
 import { UpdateShiftDto } from './dto/update-shift.dto';
@@ -15,13 +16,11 @@ export class ShiftsService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private auditLog: AuditLogService,
   ) {}
 
   // --- 1. HROMADNÉ VYTVOŘENÍ ZE ŠABLONY ---
-  async bulkCreateFromTemplate(dto: any) {
-    console.log('--- DEBUG START ---');
-    console.log('Přijaté DTO:', dto);
-
+  async bulkCreateFromTemplate(dto: import('./dto/bulk-create-shifts.dto').BulkCreateShiftsDto) {
     if (!dto || !dto.items) {
       throw new BadRequestException("Payload is missing 'items' property");
     }
@@ -318,15 +317,19 @@ export class ShiftsService {
     });
   }
 
-  async manualAssign(shiftId: string, userId: string | null) {
-    return this.prisma.shift.update({
+  async manualAssign(shiftId: string, userId: string | null, adminId?: string) {
+    const result = await this.prisma.shift.update({
       where: { id: shiftId },
       data: { assignedUserId: userId },
       include: { assignedUser: true },
     });
+    if (adminId) {
+      await this.auditLog.log('ASSIGN_SHIFT', 'Shift', shiftId, adminId, { assignedUserId: userId });
+    }
+    return result;
   }
 
-  async deleteShift(id: string) {
+  async deleteShift(id: string, adminId?: string) {
     const shift = await this.prisma.shift.findUnique({
       where: { id },
       include: { assignedUser: true },
@@ -349,6 +352,12 @@ export class ShiftsService {
       );
     }
 
+    if (adminId) {
+      await this.auditLog.log('DELETE_SHIFT', 'Shift', id, adminId, {
+        startDatetime: shift.startDatetime,
+        assignedUserId: shift.assignedUserId,
+      });
+    }
     return this.prisma.shift.delete({ where: { id } });
   }
 
@@ -434,8 +443,10 @@ export class ShiftsService {
     year?: number;
     month?: number;
     locationId?: number;
+    skip?: number;
+    take?: number;
   }) {
-    const { assignedUserId, year, month, locationId } = params;
+    const { assignedUserId, year, month, locationId, skip = 0, take = 50 } = params;
 
     const where: any = { status: 'PUBLISHED' };
     if (assignedUserId) {
@@ -463,9 +474,9 @@ export class ShiftsService {
         location: true,
         assignedUser: true,
       },
-      orderBy: {
-        startDatetime: 'asc',
-      },
+      orderBy: { startDatetime: 'asc' },
+      skip,
+      take,
     });
   }
 

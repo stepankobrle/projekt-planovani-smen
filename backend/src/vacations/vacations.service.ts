@@ -1,21 +1,22 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { NotificationsService } from '../notifications/notifications.service'; // <---
+import { NotificationsService } from '../notifications/notifications.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateVacationDto } from './dto/create-vacation.dto';
+import { VacationStatus } from '@prisma/client';
 
 @Injectable()
 export class VacationsService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService, // <--- Injectujeme službu
+    private notificationsService: NotificationsService,
+    private auditLog: AuditLogService,
   ) {}
 
   async create(userId: string, dto: CreateVacationDto) {
-    // 1. Zkontrolujeme pravidlo 14 dní
     const start = new Date(dto.startDate);
     const now = new Date();
 
-    // Rozdíl v milisekundách -> dny
     const diffTime = start.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -25,25 +26,22 @@ export class VacationsService {
       );
     }
 
-    // 2. Načteme uživatele kvůli jménu a lokaci
     const user = await this.prisma.profile.findUnique({
       where: { id: userId },
     });
     if (!user || !user.locationId)
       throw new BadRequestException('Uživatel nemá přiřazenou lokaci.');
 
-    // 3. Vytvoříme žádost
     const request = await this.prisma.vacationRequest.create({
       data: {
         userId,
         startDate: start,
         endDate: new Date(dto.endDate),
         note: dto.note,
-        status: 'PENDING', // Čeká na schválení
+        status: VacationStatus.PENDING,
       },
     });
 
-    // 4. POŠLEME NOTIFIKACI ADMINŮM V LOKACI
     const message = `🏖️ Nová žádost o dovolenou: ${user.fullName} (${start.toLocaleDateString()} - ${new Date(dto.endDate).toLocaleDateString()})`;
 
     await this.notificationsService.notifyAdminsInLocation(
@@ -64,8 +62,7 @@ export class VacationsService {
     return admin.locationId;
   }
 
-  // Admin: Schválení/Zamítnutí — ověří, že žádost patří do adminovy lokace
-  async updateStatus(id: string, status: 'APPROVED' | 'REJECTED', adminId: string) {
+  async updateStatus(id: string, status: VacationStatus, adminId: string) {
     const adminLocationId = await this.getAdminLocationId(adminId);
     const request = await this.prisma.vacationRequest.findUnique({
       where: { id },
@@ -79,30 +76,38 @@ export class VacationsService {
       data: { status },
     });
 
+    await this.auditLog.log(
+      status === VacationStatus.APPROVED ? 'APPROVE_VACATION' : 'REJECT_VACATION',
+      'VacationRequest',
+      id,
+      adminId,
+      { status },
+    );
+
     const message =
-      status === 'APPROVED'
+      status === VacationStatus.APPROVED
         ? 'Vaše žádost o dovolenou byla schválena.'
         : 'Vaše žádost o dovolenou byla zamítnuta.';
     await this.notificationsService.notifyUser(
       request.userId,
       adminLocationId,
       message,
-      status === 'APPROVED' ? 'INFO' : 'ALERT',
+      status === VacationStatus.APPROVED ? 'INFO' : 'ALERT',
     );
 
     return updated;
   }
 
-  // Zaměstnanec: Moje žádosti
-  async findMyRequests(userId: string) {
+  async findMyRequests(userId: string, skip = 0, take = 50) {
     return this.prisma.vacationRequest.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     });
   }
 
-  // Admin: Všechny žádosti v lokaci — ověří, že admin má přístup k dané lokaci
-  async findAllInLocation(locationId: number, adminId: string) {
+  async findAllInLocation(locationId: number, adminId: string, skip = 0, take = 50) {
     const adminLocationId = await this.getAdminLocationId(adminId);
     if (locationId !== adminLocationId) {
       throw new ForbiddenException('Nemáte přístup k této lokaci.');
@@ -111,6 +116,8 @@ export class VacationsService {
       where: { user: { locationId } },
       include: { user: true },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     });
   }
 }

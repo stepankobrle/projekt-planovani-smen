@@ -13,6 +13,8 @@ import {
 } from '@nestjs/common';
 import { ShiftsService } from './shifts.service';
 import { CreateShiftDto } from './dto/create-shift.dto';
+import { UpdateShiftDto } from './dto/update-shift.dto';
+import { BulkCreateShiftsDto } from './dto/bulk-create-shifts.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { AuthGuard } from '../auth/auth.guard';
@@ -22,29 +24,28 @@ import { AuthGuard } from '../auth/auth.guard';
 export class ShiftsController {
   constructor(private readonly shiftsService: ShiftsService) {}
 
-  @Post() // Odpovídá axios.post('/shifts', ...)
+  @Post()
   @Roles('ADMIN')
   create(@Body() createShiftDto: CreateShiftDto) {
     return this.shiftsService.createShifts(createShiftDto);
   }
-  //
+
   @Post('bulk')
   @Roles('ADMIN')
-  async bulkCreate(@Body() dto: any) {
+  async bulkCreate(@Body() dto: BulkCreateShiftsDto) {
     return this.shiftsService.bulkCreateFromTemplate(dto);
   }
 
-  // Smazání směny
   @Delete(':id')
   @Roles('ADMIN')
-  async remove(@Param('id') id: string) {
-    return this.shiftsService.deleteShift(id);
+  async remove(@Param('id') id: string, @Req() req) {
+    return this.shiftsService.deleteShift(id, req.user.id);
   }
 
   @Patch(':id')
   @Roles('ADMIN')
-  async update(@Param('id') id: string, @Body() updateShiftDto: any) {
-    return this.shiftsService.update(id, updateShiftDto);
+  async update(@Param('id') id: string, @Body() dto: UpdateShiftDto) {
+    return this.shiftsService.update(id, dto);
   }
 
   @Get('available-employees/:locationId')
@@ -58,13 +59,13 @@ export class ShiftsController {
       jobPositionId ? Number(jobPositionId) : undefined,
     );
   }
-  // Přehled pro admina s preferencemi zaměstnanců
+
   @Get('admin-overview')
   @Roles('ADMIN')
   async getAdminOverview(@Query('locationId') locationId: string) {
     const dateFrom = new Date();
     const dateTo = new Date();
-    dateTo.setDate(dateTo.getDate() + 30); // Změněno na 30 dní pro lepší přehled
+    dateTo.setDate(dateTo.getDate() + 30);
 
     return this.shiftsService.getShiftsWithAvailabilities(
       Number(locationId),
@@ -73,17 +74,16 @@ export class ShiftsController {
     );
   }
 
-  // Manuální přiřazení/změna člověka na směně
   @Patch(':id/assign')
   @Roles('ADMIN')
   async manualAssign(
     @Param('id') id: string,
     @Body() body: { userId: string },
+    @Req() req,
   ) {
-    return this.shiftsService.manualAssign(id, body.userId);
+    return this.shiftsService.manualAssign(id, body.userId, req.user.id);
   }
 
-  // Seznam volných směn (např. pro zaměstnance)
   @Get('available')
   async getAvailableShifts() {
     return this.shiftsService.findAllDrafts();
@@ -107,25 +107,27 @@ export class ShiftsController {
   @Get()
   async findAll(
     @Query('assignedUserId') assignedUserId?: string,
-    @Query('year') year?: number,
-    @Query('month') month?: number,
-    @Query('locationId') locationId?: number,
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+    @Query('locationId') locationId?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
   ) {
     return this.shiftsService.findAll({
       assignedUserId,
-      year,
-      month,
-      locationId,
+      year: year ? Number(year) : undefined,
+      month: month ? Number(month) : undefined,
+      locationId: locationId ? Number(locationId) : undefined,
+      skip: skip ? Number(skip) : 0,
+      take: take ? Number(take) : 50,
     });
   }
 
-  // 1. Nabídnout směnu (Zaměstnanec -> Burza)
   @Patch(':id/offer')
   async offerShift(@Param('id') id: string, @Req() req) {
     return this.shiftsService.offerShift(req.user.id, id);
   }
 
-  // 2. Vzít si směnu (Kolega -> Zaměstnanec)
   @Patch(':id/take')
   async takeShift(@Param('id') id: string, @Req() req) {
     return this.shiftsService.requestShift(req.user.id, id);

@@ -79,11 +79,12 @@ export class NotificationsService {
     admins.forEach((admin) => this.events$.next(admin.id));
   }
 
-  async getMyNotifications(userId: string) {
+  async getMyNotifications(userId: string, skip = 0, take = 20) {
     return this.prisma.notification.findMany({
       where: { recipientId: userId },
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      skip,
+      take,
     });
   }
 

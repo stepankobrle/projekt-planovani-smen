@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Cookies from 'js-cookie';
 import api from '@/lib/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
@@ -18,7 +17,6 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Načte plný seznam notifikací (voláno při otevření dropdownu)
   const fetchNotifications = useCallback(async () => {
     const { data } = await api.get<Notification[]>('/notifications');
     setNotifications(data);
@@ -38,19 +36,33 @@ export function useNotifications() {
     setUnreadCount(0);
   }, []);
 
-  // SSE spojení — token jde jako query param (EventSource nepodporuje hlavičky)
+  // SSE s krátkodobým tokenem — hlavní JWT zůstane v HttpOnly cookie, SSE token je krátkodobý
   useEffect(() => {
-    const token = Cookies.get('token');
-    if (!token) return;
+    let es: EventSource | null = null;
 
-    const es = new EventSource(`${API_URL}/notifications/stream?token=${token}`);
+    const connectSse = async () => {
+      try {
+        const { data } = await api.get<{ token: string }>('/auth/sse-token');
+        es = new EventSource(`${API_URL}/notifications/stream?token=${data.token}`);
 
-    es.onmessage = (event: MessageEvent<string>) => {
-      const data = JSON.parse(event.data) as { unreadCount: number };
-      setUnreadCount(data.unreadCount);
+        es.onmessage = (event: MessageEvent<string>) => {
+          const parsed = JSON.parse(event.data) as { unreadCount: number };
+          setUnreadCount(parsed.unreadCount);
+        };
+
+        es.onerror = () => {
+          es?.close();
+          // SSE token vyprší za 5 min — obnovíme po 30 s
+          setTimeout(connectSse, 30_000);
+        };
+      } catch {
+        // Uživatel není přihlášen — SSE se nespustí
+      }
     };
 
-    return () => es.close();
+    connectSse();
+
+    return () => es?.close();
   }, []);
 
   return { unreadCount, notifications, fetchNotifications, markAsRead, markAllAsRead };

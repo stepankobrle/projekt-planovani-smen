@@ -4,17 +4,6 @@ import Sidebar from "@/app/components/Sidebar";
 import Header from "@/app/components/Header";
 import { UserRole } from "@/config/menu";
 import ProtectedRoute, { useAuth } from "@/app/components/ProtectedRoute";
-import axios from "axios";
-import Cookies from "js-cookie";
-
-// Konfigurace Axiosu, aby posílal token v každém požadavku
-axios.interceptors.request.use((config) => {
-	const token = Cookies.get("token");
-	if (token) {
-		config.headers.Authorization = `Bearer ${token}`;
-	}
-	return config;
-});
 
 export default function DashboardLayout({
 	children,

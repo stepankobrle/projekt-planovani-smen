@@ -160,7 +160,9 @@ export default function JobPositionsPage() {
 						</thead>
 						<tbody className="divide-y divide-slate-100">
 							{positions.map((pos) => (
-								<tr key={pos.id} className="hover:bg-slate-50/50 transition-colors">
+								<tr
+									key={pos.id}
+									className="hover:bg-slate-50/50 transition-colors">
 									<td className="px-6 py-4">
 										<div className="flex items-center gap-3">
 											<div className="h-10 w-10 rounded-full bg-brand-secondary/10 text-brand-secondary flex items-center justify-center shrink-0">

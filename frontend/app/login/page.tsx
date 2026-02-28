@@ -17,40 +17,35 @@ export default function LoginPage() {
 		setLoading(true);
 
 		try {
-			// Používáme tvůj endpoint z AuthService.signIn
 			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"}/auth/login`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
+				credentials: "include", // Přijmout HttpOnly cookies od backendu
 				body: JSON.stringify({ email, password }),
 			});
 
 			const data = await response.json();
 
 			if (response.ok) {
-				// 1. Uložíme token do cookies (vyprší za 24h)
-				Cookies.set("token", data.access_token, { expires: 1, secure: false }); // secure: true dej až na produkci (HTTPS)
-
-				// 2. Uložíme roli pro rychlý přístup v Layoutu
+				// access_token je nyní v HttpOnly cookie (nastavil backend)
+				// Ukládáme jen uživatelská data pro UI routing (bez citlivého tokenu)
 				if (data.user && data.user.role && data.user.id) {
 					Cookies.set("id", data.user.id, { expires: 1 });
 					Cookies.set("role", data.user.role, { expires: 1 });
 				}
 
-				// 3. Přesměrování podle role
 				const role = data.user?.role;
 				if (role === "ADMIN" || role === "MANAGER") {
 					router.push("/admin/dashboard");
 				} else {
 					router.push("/dashboard");
 				}
-				router.refresh(); // Vynutí refresh, aby layout načetl nové cookies
+				router.refresh();
 			} else {
 				setError(data.message || "Neplatné přihlašovací údaje");
 			}
-		} catch (err: any) {
-			setError(
-				"Nepodařilo se připojit k serveru. Zkontroluj, zda běží backend.",
-			);
+		} catch {
+			setError("Nepodařilo se připojit k serveru. Zkontroluj, zda běží backend.");
 		} finally {
 			setLoading(false);
 		}

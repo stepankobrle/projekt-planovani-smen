@@ -3,28 +3,23 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
+import api from "@/lib/api";
 
-// 1. Definujeme, co všechno je v tokenu (musí tam být ID)
 interface UserPayload {
 	id: string;
 	email: string;
 	role: string;
 	fullName?: string;
-	iat?: number;
-	exp?: number;
 	locationId: number;
 }
 
-// 2. Definujeme, co všechno kontext zpřístupní komponentám
 interface AuthContextType {
 	isAuthenticated: boolean;
 	role: string | null;
-	user: UserPayload | null; // <--- TOTO JE KLÍČOVÉ (přidali jsme user)
+	user: UserPayload | null;
 	loading: boolean;
 }
 
-// Výchozí hodnoty
 const AuthContext = createContext<AuthContextType>({
 	isAuthenticated: false,
 	role: null,
@@ -38,40 +33,48 @@ export default function ProtectedRoute({
 	children: React.ReactNode;
 }) {
 	const router = useRouter();
-	const pathname = usePathname(); // Pro kontrolu, na jaké jsme stránce
+	const pathname = usePathname();
 
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [role, setRole] = useState<string | null>(null);
-	const [user, setUser] = useState<UserPayload | null>(null); // <--- State pro usera
+	const [user, setUser] = useState<UserPayload | null>(null);
 	const [loading, setLoading] = useState(true);
 
+	// Ověření session proběhne jen jednou při prvním načtení layoutu.
+	// Next.js App Router layout se neodmontovává při navigaci, takže opakované
+	// volání /auth/profile při každé změně pathname není potřeba.
 	useEffect(() => {
-		const token = Cookies.get("token");
+		const cachedRole = Cookies.get("role");
+		const cachedId = Cookies.get("id");
 
-		if (!token) {
-			// Pokud nemáme token a nejsme na login/register stránce, přesměrujeme
-			if (pathname !== "/login" && pathname !== "/register") {
-				router.push("/login");
-			}
+		if (!cachedRole || !cachedId) {
+			router.push("/login");
 			setLoading(false);
 			return;
 		}
 
-		try {
-			// 3. Dekódujeme token a získáme ID a další data
-			const decoded = jwtDecode<UserPayload>(token);
+		api
+			.get<UserPayload>("/auth/profile")
+			.then((res) => {
+				setUser(res.data);
+				setRole(res.data.role);
+				setIsAuthenticated(true);
+			})
+			.catch(() => {
+				Cookies.remove("role");
+				Cookies.remove("id");
+				router.push("/login");
+			})
+			.finally(() => {
+				setLoading(false);
+			});
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-			setUser(decoded); // Uložíme celého usera (včetně ID)
-			setRole(decoded.role);
-			setIsAuthenticated(true);
-		} catch (error) {
-			console.error("Neplatný token", error);
-			Cookies.remove("token");
-			router.push("/login");
-		} finally {
-			setLoading(false);
-		}
-	}, [router, pathname]);
+	// Separátní efekt pro role-based routing při změně stránky (bez API volání)
+	useEffect(() => {
+		if (loading || !isAuthenticated) return;
+		// Sem lze přidat přesměrování podle role pokud je potřeba
+	}, [pathname, loading, isAuthenticated, role]);
 
 	if (loading) {
 		return (
@@ -81,12 +84,10 @@ export default function ProtectedRoute({
 		);
 	}
 
-	// Pokud vyžaduješ přísnější ochranu, můžeš zde vrátit null, pokud !isAuthenticated
 	if (!isAuthenticated && pathname !== "/login" && pathname !== "/register") {
 		return null;
 	}
 
-	// 4. Posíláme 'user' dál do aplikace
 	return (
 		<AuthContext.Provider value={{ isAuthenticated, role, user, loading }}>
 			{children}
@@ -94,5 +95,4 @@ export default function ProtectedRoute({
 	);
 }
 
-// Hook pro snadné použití
 export const useAuth = () => useContext(AuthContext);

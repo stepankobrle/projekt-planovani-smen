@@ -38,10 +38,17 @@ export class UsersController {
 
   @Get()
   @Roles('ADMIN', 'MANAGER')
-  async findAll(@Request() req) {
+  async findAll(
+    @Request() req,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
     const currentUserId = req.user.sub || req.user.userId || req.user.id;
-
-    return this.usersService.findAll(currentUserId);
+    return this.usersService.findAll(
+      currentUserId,
+      skip ? Number(skip) : 0,
+      take ? Number(take) : 50,
+    );
   }
 
   // Musí být před @Get(':id') aby "stats" nebylo zachyceno jako :id

@@ -86,36 +86,39 @@ model Profile {
   jobPositionId         Int?
   jobPosition           JobPosition?   @relation(fields: [jobPositionId], references: [id])
   
-  availabilities     Availability[]
-  assignedShifts     Shift[]
-  createdAt          DateTime       @default(now())
-  submissions    ScheduleSubmission[]
-
-vacationRequests      VacationRequest[]
+  availabilities        Availability[]
+  assignedShifts        Shift[]
+  createdAt             DateTime       @default(now())
+  submissions           ScheduleSubmission[]
+  vacationRequests      VacationRequest[]
   receivedNotifications Notification[] @relation("ReceivedNotifications")
-  offeredShifts     Shift[]        @relation("OfferedShifts")
-  requestedShifts   Shift[]        @relation("RequestedShifts")
+  offeredShifts         Shift[]        @relation("OfferedShifts")
+  requestedShifts       Shift[]        @relation("RequestedShifts")
+  refreshTokens         RefreshToken[]
 }
 
 
 model VacationRequest {
-  id        String   @id @default(uuid())
+  id        String          @id @default(uuid())
   userId    String
-  user      Profile  @relation(fields: [userId], references: [id])
-  
+  user      Profile         @relation(fields: [userId], references: [id])
+
   startDate DateTime
   endDate   DateTime
-  type      String   @default("VACATION") 
-  status    String   @default("PENDING") 
-  
-  note      String? 
-  createdAt DateTime @default(now())
+  type      VacationType    @default(VACATION)
+  status    VacationStatus  @default(PENDING)
+
+  note      String?
+  createdAt DateTime        @default(now())
+
+  @@index([userId])
+  @@index([status])
 }
 
 
 model Notification {
   id        String   @id @default(uuid())
-  content   String   
+  content   String
   isRead    Boolean  @default(false)
   type      String   // ALERT, INFO, VACATION_REQUEST
   createdAt DateTime @default(now())
@@ -125,6 +128,9 @@ model Notification {
 
   recipientId String
   recipient   Profile @relation("ReceivedNotifications", fields: [recipientId], references: [id])
+
+  @@index([recipientId])
+  @@index([recipientId, isRead])
 }
 
 
@@ -155,7 +161,7 @@ model Shift {
   startDatetime  DateTime
   endDatetime    DateTime
   status         ShiftStatus @default(DRAFT)
-  availabilities  Availability[]
+  availabilities Availability[]
 
   locationId     Int
   location       Location    @relation(fields: [locationId], references: [id])
@@ -173,15 +179,19 @@ model Shift {
   scheduleGroup   ScheduleGroup? @relation(fields: [scheduleGroupId], references: [id])
 
   isMarketplace Boolean @default(false)
-offeredById   String?
+  offeredById   String?
   offeredBy     Profile?    @relation("OfferedShifts", fields: [offeredById], references: [id])
 
   requestedById String?
   requestedBy   Profile?    @relation("RequestedShifts", fields: [requestedById], references: [id])
 
-  jobPositionId      Int
-  jobPosition        JobPosition    @relation(fields: [jobPositionId], references: [id])
+  jobPositionId Int
+  jobPosition   JobPosition @relation(fields: [jobPositionId], references: [id])
 
+  @@index([locationId])
+  @@index([startDatetime])
+  @@index([assignedUserId])
+  @@index([scheduleGroupId])
 }
 
 model ScheduleGroup {
@@ -236,6 +246,32 @@ model ScheduleSubmission {
 }
 
 
+// --- REFRESH TOKENY ---
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// --- AUDIT LOG ---
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String   // CREATE_SHIFT, ASSIGN_SHIFT, APPROVE_VACATION, INVITE_USER, ...
+  entityType String
+  entityId   String
+  userId     String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+}
+
 // --- ENUMERACE ---
 enum UserRole {
   ADMIN
@@ -269,4 +305,16 @@ enum AvailabilityType {
   AVAILABLE
   UNAVAILABLE
   PREFERRED   // Chci tuhle směnu/čas
+}
+
+enum VacationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VacationType {
+  VACATION
+  SICK_LEAVE
+  OTHER
 }

@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from 'prisma/prisma.module';
 import { VacationsModule } from './vacations/vacations.module';
 import { EmploymentContractsModule } from './employment-contracts/employment-contracts.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Global()
 @Module({
@@ -57,6 +58,7 @@ import { EmploymentContractsModule } from './employment-contracts/employment-con
     PrismaModule,
     VacationsModule,
     EmploymentContractsModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
