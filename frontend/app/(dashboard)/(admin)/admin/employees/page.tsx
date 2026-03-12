@@ -408,7 +408,7 @@ export default function EmployeesPage() {
 											? "bg-red-600 text-white"
 											: "bg-brand-secondary text-brand-text-on-primary"
 										: f.danger
-											? "bg-white border border-red-200 text-red-600 hover:bg-red-50"
+											? "bg-white border border-red-200 text-red-600 hover:bg-white"
 											: "bg-white border border-slate-200 text-slate-600 hover:border-brand-secondary/50"
 								}`}>
 								{f.label}
@@ -463,7 +463,7 @@ export default function EmployeesPage() {
 										key={emp.id}
 										className={`transition-colors ${
 											problematic
-												? "bg-red-50/40 hover:bg-red-50/60"
+												? "bg-white hover:bg-red-50/60"
 												: "hover:bg-slate-50/50"
 										}`}>
 										{/* ZAMĚSTNANEC */}

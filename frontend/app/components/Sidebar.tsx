@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
 	ChevronDown,
 	ChevronRight,
-	Menu,
 	X,
 	PanelLeftClose,
 	PanelLeftOpen,
@@ -18,14 +17,15 @@ import Cookies from "js-cookie";
 
 interface SidebarProps {
 	userRole: UserRole;
+	isMobileOpen: boolean;
+	onClose: () => void;
 }
 
-export default function Sidebar({ userRole }: SidebarProps) {
+export default function Sidebar({ userRole, isMobileOpen, onClose }: SidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const [openMenus, setOpenMenus] = useState<string[]>([]);
 	const [isCollapsed, setIsCollapsed] = useState(false);
-	const [isMobileOpen, setIsMobileOpen] = useState(false);
 
 	const toggleMenu = (title: string) => {
 		if (isCollapsed) setIsCollapsed(false);
@@ -45,18 +45,11 @@ export default function Sidebar({ userRole }: SidebarProps) {
 
 	return (
 		<>
-			{/* MOBILNÍ HAMBURGER TLAČÍTKO */}
-			<button
-				onClick={() => setIsMobileOpen(!isMobileOpen)}
-				className="fixed top-4 left-4 z-50 rounded-md bg-brand-primary p-2 text-white lg:hidden">
-				{isMobileOpen ? <X size={20} /> : <Menu size={20} />}
-			</button>
-
 			{/* OVERLAY PRO MOBIL */}
 			{isMobileOpen && (
 				<div
-					className="fixed inset-0 z-40 bg-brand-primary lg:hidden"
-					onClick={() => setIsMobileOpen(false)}
+					className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+					onClick={onClose}
 				/>
 			)}
 
@@ -79,6 +72,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 							ShiftMaster<span className="text-brand-secondary">.</span>
 						</h1>
 					)}
+					{/* Desktop: collapse tlačítko */}
 					<button
 						onClick={() => setIsCollapsed(!isCollapsed)}
 						className="hidden lg:block text-slate-500 hover:text-white">
@@ -87,6 +81,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
 						) : (
 							<PanelLeftClose size={20} />
 						)}
+					</button>
+					{/* Mobil: X tlačítko přilepené k pravé straně menu */}
+					<button
+						onClick={onClose}
+						className="lg:hidden text-slate-500 hover:text-white">
+						<X size={20} />
 					</button>
 				</div>
 
@@ -133,7 +133,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 														<Link
 															key={sub.href}
 															href={sub.href}
-															onClick={() => setIsMobileOpen(false)}
+															onClick={onClose}
 															className={cn(
 																"block rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
 																pathname === sub.href
@@ -149,7 +149,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
 								) : (
 									<Link
 										href={item.href || "#"}
-										onClick={() => setIsMobileOpen(false)}
+										onClick={onClose}
 										className={cn(
 											"group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all",
 											isCollapsed && "justify-center",

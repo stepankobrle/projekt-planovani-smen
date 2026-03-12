@@ -29,7 +29,7 @@ export function DayCard({ day, shifts, positions, colorPalette, onEditShift, onA
 
 	return (
 		<div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 overflow-hidden">
-			<div className="bg-slate-100 px-6 py-3 flex justify-between items-center border-b border-slate-200">
+			<div className="bg-slate-50/50 px-6 py-3 flex justify-between items-center border-b border-slate-100">
 				<div className="font-black text-slate-600 uppercase text-xs tracking-wider">
 					{weekday} {dayNum}.{monthNum}
 				</div>
@@ -46,10 +46,10 @@ export function DayCard({ day, shifts, positions, colorPalette, onEditShift, onA
 						Žádné směny
 					</div>
 				) : (
-					activePositionIds.map((posId) => {
+					activePositionIds.map((posId, index) => {
 						const posName = positions.find((p) => p.id === Number(posId))?.name || "Neznámá pozice";
 						const shiftsInPos = grouped[posId];
-						const color = colorPalette[Number(posId) % colorPalette.length];
+						const color = colorPalette[index % colorPalette.length];
 
 						return (
 							<div

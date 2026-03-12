@@ -2,8 +2,10 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { Prisma } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -67,40 +69,47 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string) {
-    const stored = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
-      include: { user: { include: { jobPosition: true } } },
-    });
+    try {
+      const stored = await this.prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+        include: { user: { include: { jobPosition: true } } },
+      });
 
-    if (!stored || stored.expiresAt < new Date()) {
-      if (stored) {
-        await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+      if (!stored || stored.expiresAt < new Date()) {
+        if (stored) {
+          await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+        }
+        throw new UnauthorizedException('Refresh token expiroval nebo je neplatný.');
       }
-      throw new UnauthorizedException('Refresh token expiroval nebo je neplatný.');
+
+      // Rotace tokenu — starý smažeme, nový vytvoříme
+      await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+
+      const user = stored.user;
+      const effectiveRole = user.jobPosition?.isManagerial ? 'ADMIN' : user.role;
+      const payload = {
+        sub: user.id,
+        id: user.id,
+        email: user.email,
+        role: effectiveRole,
+        locationId: user.locationId,
+        fullName: user.fullName,
+      };
+
+      const newAccessToken = await this.jwtService.signAsync(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '15m',
+      });
+
+      const newRefreshToken = await this.generateRefreshToken(user.id);
+
+      return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P1001') {
+        throw new ServiceUnavailableException('Databáze je dočasně nedostupná. Zkuste to za chvíli.');
+      }
+      throw err;
     }
-
-    // Rotace tokenu — starý smažeme, nový vytvoříme
-    await this.prisma.refreshToken.delete({ where: { id: stored.id } });
-
-    const user = stored.user;
-    const effectiveRole = user.jobPosition?.isManagerial ? 'ADMIN' : user.role;
-    const payload = {
-      sub: user.id,
-      id: user.id,
-      email: user.email,
-      role: effectiveRole,
-      locationId: user.locationId,
-      fullName: user.fullName,
-    };
-
-    const newAccessToken = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_SECRET,
-      expiresIn: '15m',
-    });
-
-    const newRefreshToken = await this.generateRefreshToken(user.id);
-
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 
   async generateSseToken(userId: string): Promise<string> {

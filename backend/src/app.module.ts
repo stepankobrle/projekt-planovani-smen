@@ -6,6 +6,7 @@ import { PrismaService } from './prisma.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
 import { ShiftsModule } from './shifts/shifts.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { ScheduleModule } from './schedule/schedule.module';
@@ -30,6 +31,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
         limit: 10,   // max 10 pokusů za minutu
       },
     ]),
+    NestScheduleModule.forRoot(),
     AuthModule,
     MailerModule.forRootAsync({
       inject: [ConfigService],

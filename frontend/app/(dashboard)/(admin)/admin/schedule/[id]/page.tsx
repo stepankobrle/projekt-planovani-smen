@@ -24,14 +24,8 @@ const MONTH_NAMES = [
 ];
 
 const POSITION_COLOR_PALETTE: PositionColor[] = [
-	{ row: "#eff6ff", badge: "#dbeafe", text: "#1d4ed8", border: "#bfdbfe" },
-	{ row: "#f0fdf4", badge: "#dcfce7", text: "#15803d", border: "#bbf7d0" },
-	{ row: "#fdf4ff", badge: "#f3e8ff", text: "#7e22ce", border: "#e9d5ff" },
-	{ row: "#fff7ed", badge: "#ffedd5", text: "#c2410c", border: "#fed7aa" },
-	{ row: "#f0fdfa", badge: "#ccfbf1", text: "#0f766e", border: "#99f6e4" },
-	{ row: "#fff1f2", badge: "#ffe4e6", text: "#be123c", border: "#fecdd3" },
-	{ row: "#fefce8", badge: "#fef9c3", text: "#854d0e", border: "#fef08a" },
-	{ row: "#f5f3ff", badge: "#ede9fe", text: "#5b21b6", border: "#ddd6fe" },
+	{ row: "#e4f2f0", badge: "#b8d8d4", text: "#1a403c", border: "#7ab0aa" }, // zelená
+	{ row: "#edf1f6", badge: "#c8d6e4", text: "#3d5570", border: "#9ab0c8" }, // světlá slate
 ];
 
 const DEFAULT_MODAL: ModalState = {

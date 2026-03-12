@@ -16,6 +16,13 @@ const STATUS_COLORS: Record<ScheduleStatus, string> = {
 	PUBLISHED: "bg-green-100 text-green-600",
 };
 
+const STATUS_LABELS: Record<ScheduleStatus, string> = {
+	DRAFT: "Koncept",
+	PREFERENCES: "Sběr preferencí",
+	GENERATED: "Vygenerováno",
+	PUBLISHED: "Publikováno",
+};
+
 function AutoGenerateButton({ generating, onClick }: { generating: boolean; onClick: () => void }) {
 	return (
 		<button
@@ -45,7 +52,7 @@ export function StatusPanel({ status, generating, onChangeStatus, onAutoGenerate
 			<div className="flex items-center gap-2">
 				<span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Stav rozvrhu:</span>
 				<span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${STATUS_COLORS[status]}`}>
-					{status}
+					{STATUS_LABELS[status]}
 				</span>
 			</div>
 

@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, Search, User, X } from "lucide-react";
+import { Bell, Menu, Search, User, X } from "lucide-react";
 import { UserRole } from "@/config/menu";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useAuth } from "@/app/components/ProtectedRoute";
 
 interface HeaderProps {
 	userRole: UserRole;
+	onMobileToggle: () => void;
 }
 
-export default function Header({ userRole }: HeaderProps) {
+export default function Header({ userRole, onMobileToggle }: HeaderProps) {
+	const { user } = useAuth();
 	const [isOpen, setIsOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const {
@@ -49,7 +52,14 @@ export default function Header({ userRole }: HeaderProps) {
 		});
 
 	return (
-		<header className="h-16 bg-brand-primary px-8 flex items-center justify-between sticky top-0 z-30">
+		<header className="h-16 bg-brand-primary px-4 md:px-8 flex items-center justify-between sticky top-0 z-30">
+			{/* MOBILNÍ HAMBURGER */}
+			<button
+				onClick={onMobileToggle}
+				className="lg:hidden p-2 text-white rounded-md mr-2 shrink-0">
+				<Menu size={20} />
+			</button>
+
 			{/* LEVÁ ČÁST: Vyhledávání */}
 			<div className="hidden md:flex items-center relative max-w-sm w-full">
 				<Search
@@ -146,8 +156,8 @@ export default function Header({ userRole }: HeaderProps) {
 				{/* Uživatel */}
 				<div className="flex items-center gap-3 pl-2 group cursor-pointer">
 					<div className="text-right hidden sm:block">
-						<p className="text-sm font-semibold text-slate-900 leading-none">
-							Administrátor
+						<p className="text-sm font-semibold text-white leading-none">
+							{user?.fullName ?? user?.email ?? "Uživatel"}
 						</p>
 						<p className="text-[11px] text-slate-500 mt-1 uppercase font-bold tracking-wider">
 							{userRole}
