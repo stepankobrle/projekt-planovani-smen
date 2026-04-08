@@ -1,4 +1,10 @@
-import { LayoutDashboard, Users, CalendarDays, Settings } from "lucide-react";
+import {
+	LayoutDashboard,
+	Users,
+	CalendarDays,
+	Settings,
+	Plane,
+} from "lucide-react";
 
 export enum UserRole {
 	ADMIN = "ADMIN",
@@ -18,9 +24,15 @@ export interface MenuItem {
 export const menuItems: MenuItem[] = [
 	{
 		title: "Dashboard",
+		href: "/admin/dashboard",
+		icon: LayoutDashboard,
+		roles: [UserRole.ADMIN, UserRole.MANAGER],
+	},
+	{
+		title: "Dashboard",
 		href: "/dashboard",
 		icon: LayoutDashboard,
-		roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE],
+		roles: [UserRole.EMPLOYEE, UserRole.PART_TIMER],
 	},
 	{
 		title: "Správa",
@@ -29,15 +41,49 @@ export const menuItems: MenuItem[] = [
 		items: [
 			{
 				title: "Zaměstnanci",
-				href: "/employees",
+				href: "/admin/employees",
 				roles: [UserRole.ADMIN],
 			},
-			{ title: "Pobočky", href: "/admin/locations", roles: [UserRole.ADMIN] },
 			{
 				title: "Pracovní pozice",
-				href: "/admin/positions",
+				href: "/admin/job-positions",
 				roles: [UserRole.ADMIN, UserRole.MANAGER],
 			},
+			{
+				title: "Směny",
+				href: "/admin/shift-types",
+				roles: [UserRole.ADMIN],
+			},
 		],
+	},
+	{
+		title: "Rozvrhy",
+		href: "/admin/schedule/1",
+		icon: CalendarDays,
+		roles: [UserRole.ADMIN, UserRole.MANAGER],
+	},
+	{
+		title: "Dovolené",
+		href: "/admin/vacations",
+		icon: Plane,
+		roles: [UserRole.ADMIN, UserRole.MANAGER],
+	},
+	{
+		title: "Moje směny",
+		href: "/schedule",
+		icon: CalendarDays,
+		roles: [UserRole.EMPLOYEE],
+	},
+	{
+		title: "Moje preference",
+		href: "/preferences",
+		icon: CalendarDays,
+		roles: [UserRole.EMPLOYEE, UserRole.PART_TIMER],
+	},
+	{
+		title: "Dovolená",
+		href: "/vacations",
+		icon: Plane,
+		roles: [UserRole.EMPLOYEE, UserRole.PART_TIMER],
 	},
 ];

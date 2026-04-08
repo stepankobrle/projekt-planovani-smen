@@ -1,8 +1,16 @@
-// backend/src/availability/dto/create-availability.dto.ts
+// src/availabilities/dto/create-availability.dto.ts
+import { IsString, IsEnum, IsNotEmpty } from 'class-validator';
 import { AvailabilityType } from '@prisma/client';
 
 export class CreateAvailabilityDto {
-  userId: string;
+  @IsString()
+  @IsNotEmpty()
   shiftId: string;
-  type: AvailabilityType; // PREFERRED, AVAILABLE, UNAVAILABLE
+
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+
+  @IsEnum(AvailabilityType)
+  type: AvailabilityType; // Tady validujeme AVAILABLE | UNAVAILABLE | PREFERRED
 }

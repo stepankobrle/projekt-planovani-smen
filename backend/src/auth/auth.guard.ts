@@ -13,7 +13,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractToken(request);
     if (!token) {
       throw new UnauthorizedException();
     }
@@ -28,8 +28,12 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
+  private extractToken(request: Request): string | undefined {
+    // 1. Authorization: Bearer <token> (Swagger, SSE endpoint, mobilní klienti)
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    if (type === 'Bearer' && token) return token;
+
+    // 2. HttpOnly cookie (hlavní způsob autentizace v prohlížeči)
+    return (request.cookies as Record<string, string>)?.['access_token'];
   }
 }

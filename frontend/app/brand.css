@@ -1,0 +1,33 @@
+:root {
+	/* === BRAND BARVY === */
+	--brand-primary: #00010d;
+	--brand-primary-hover: #102426;
+
+	--brand-secondary: #1a403c;
+	--brand-secondary-hover: #102426;
+
+	--brand-surface: #eff5f9;
+	--brand-border: #bfb8a3;
+
+	--brand-success: #16a34a;
+	--brand-warning: #f59e0b;
+	--brand-danger: #dc2626;
+
+	--brand-grey: #102426;
+
+	--brand-text-on-primary: #d9d3b8;
+}
+
+@theme inline {
+	--color-brand-primary: var(--brand-primary);
+	--color-brand-primary-hover: var(--brand-primary-hover);
+	--color-brand-secondary: var(--brand-secondary);
+	--color-brand-secondary-hover: var(--brand-secondary-hover);
+	--color-brand-surface: var(--brand-surface);
+	--color-brand-border: var(--brand-border);
+	--color-brand-success: var(--brand-success);
+	--color-brand-warning: var(--brand-warning);
+	--color-brand-danger: var(--brand-danger);
+	--color-brand-text-on-primary: var(--brand-text-on-primary);
+	--color-brand-grey: var(--brand-grey);
+}

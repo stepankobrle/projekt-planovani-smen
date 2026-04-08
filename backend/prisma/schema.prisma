@@ -31,6 +31,8 @@ model Location {
   shifts       Shift[]
   requirements StaffingRequirement[]
   createdAt    DateTime              @default(now())
+  notifications Notification[]
+  scheduleGroups ScheduleGroup[]
 }
 
 model JobPosition {
@@ -39,6 +41,8 @@ model JobPosition {
   isManagerial Boolean               @default(false)
   profiles     Profile[]
   requirements StaffingRequirement[]
+  shifts Shift[]
+
 }
 
 model ShiftType {
@@ -52,6 +56,14 @@ model ShiftType {
   availabilities Availability[]      // Vazba pro preference konkrétních směn
 }
 
+// --- PRACOVNÍ POMĚRY ---
+model EmploymentContract {
+  id       Int                    @id @default(autoincrement())
+  type     EmploymentContractType @unique
+  label    String                 // "HPP", "DPČ", "DPP", "IČO"
+  profiles Profile[]
+}
+
 // --- UŽIVATELÉ ---
 model Profile {
   id                 String         @id @default(uuid())
@@ -60,7 +72,10 @@ model Profile {
   fullName           String
   role               UserRole       @default(EMPLOYEE)
   targetHoursPerMonth Decimal        @default(160) // Fond hodin pro plný úvazek
-  
+
+  employmentContractId Int?
+  employmentContract   EmploymentContract? @relation(fields: [employmentContractId], references: [id])
+
   invitationToken    String?        @unique
   invitationExpires  DateTime?
   isActivated        Boolean        @default(false)
@@ -68,14 +83,56 @@ model Profile {
   locationId         Int?
   location           Location?      @relation(fields: [locationId], references: [id])
 
-  positionId         Int?
-  position           JobPosition?   @relation(fields: [positionId], references: [id])
+  jobPositionId         Int?
+  jobPosition           JobPosition?   @relation(fields: [jobPositionId], references: [id])
   
-  availabilities     Availability[]
-  assignedShifts     Shift[]
-  createdAt          DateTime       @default(now())
-  submissions    ScheduleSubmission[]
+  availabilities        Availability[]
+  assignedShifts        Shift[]
+  createdAt             DateTime       @default(now())
+  submissions           ScheduleSubmission[]
+  vacationRequests      VacationRequest[]
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
+  offeredShifts         Shift[]        @relation("OfferedShifts")
+  requestedShifts       Shift[]        @relation("RequestedShifts")
+  refreshTokens         RefreshToken[]
 }
+
+
+model VacationRequest {
+  id        String          @id @default(uuid())
+  userId    String
+  user      Profile         @relation(fields: [userId], references: [id])
+
+  startDate DateTime
+  endDate   DateTime
+  type      VacationType    @default(VACATION)
+  status    VacationStatus  @default(PENDING)
+
+  note      String?
+  createdAt DateTime        @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+
+model Notification {
+  id        String   @id @default(uuid())
+  content   String
+  isRead    Boolean  @default(false)
+  type      String   // ALERT, INFO, VACATION_REQUEST
+  createdAt DateTime @default(now())
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+
+  recipientId String
+  recipient   Profile @relation("ReceivedNotifications", fields: [recipientId], references: [id])
+
+  @@index([recipientId])
+  @@index([recipientId, isRead])
+}
+
 
 // --- PLÁNOVÁNÍ: POTŘEBA OBSAZENÍ (DRAFTY) ---
 model StaffingRequirement {
@@ -104,19 +161,56 @@ model Shift {
   startDatetime  DateTime
   endDatetime    DateTime
   status         ShiftStatus @default(DRAFT)
-  availabilities  Availability[]
+  availabilities Availability[]
 
   locationId     Int
   location       Location    @relation(fields: [locationId], references: [id])
 
-  shiftTypeId    Int
-  shiftType      ShiftType   @relation(fields: [shiftTypeId], references: [id])
+  shiftTypeId    Int?
+  shiftType      ShiftType?  @relation(fields: [shiftTypeId], references: [id])
 
   // Prázdné před přiřazením algoritmem nebo výběrem brigádníka
   assignedUserId String?
   assignedUser   Profile?    @relation(fields: [assignedUserId], references: [id])
 
   createdAt      DateTime    @default(now())
+
+  scheduleGroupId String?
+  scheduleGroup   ScheduleGroup? @relation(fields: [scheduleGroupId], references: [id])
+
+  isMarketplace Boolean @default(false)
+  offeredById   String?
+  offeredBy     Profile?    @relation("OfferedShifts", fields: [offeredById], references: [id])
+
+  requestedById String?
+  requestedBy   Profile?    @relation("RequestedShifts", fields: [requestedById], references: [id])
+
+  jobPositionId Int
+  jobPosition   JobPosition @relation(fields: [jobPositionId], references: [id])
+
+  @@index([locationId])
+  @@index([startDatetime])
+  @@index([assignedUserId])
+  @@index([scheduleGroupId])
+}
+
+model ScheduleGroup {
+  id           String         @id @default(uuid())
+  name         String?        // Teď už může být volitelné, název se generuje z měsíce
+  year         Int      
+  month        Int      
+  locationId   Int
+  calendarDays String[]       // Např. ["2026-02-01", "2026-02-02", ...]
+  status       ScheduleStatus @default(DRAFT)
+  
+
+  shifts       Shift[]
+  location   Location       @relation(fields: [locationId], references: [id]) 
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt // Automaticky aktualizuje čas při změně
+
+  @@unique([locationId, year, month])
 }
 
 // --- DOSTUPNOST A PREFERENCE ZAMĚSTNANCŮ ---
@@ -151,22 +245,76 @@ model ScheduleSubmission {
   @@unique([userId, weekNumber, year]) // Jeden uživatel potvrdí jeden týden jen jednou
 }
 
+
+// --- REFRESH TOKENY ---
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// --- AUDIT LOG ---
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String   // CREATE_SHIFT, ASSIGN_SHIFT, APPROVE_VACATION, INVITE_USER, ...
+  entityType String
+  entityId   String
+  userId     String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+}
+
 // --- ENUMERACE ---
 enum UserRole {
   ADMIN
   MANAGER
-  EMPLOYEE    // Plný úvazek (HPP)
-  PART_TIMER  // Brigádník (DPP/DPČ)
+  EMPLOYEE    // Všichni zaměstnanci (HPP, DPČ, DPP, IČO) – typ poměru je v EmploymentContract
+}
+
+enum EmploymentContractType {
+  HPP        // Hlavní pracovní poměr
+  DPC        // Dohoda o pracovní činnosti (DPČ)
+  DPP        // Dohoda o provedení práce
+  ICO        // Živnostník / OSVČ
+}
+
+enum ScheduleStatus {
+  DRAFT
+  PREFERENCES   // Probíhá sběr dat od lidí
+  GENERATED     // Algoritmus proběhl, admin ladí
+  PUBLISHED     // Finální verze pro všechny
 }
 
 enum ShiftStatus {
-  DRAFT       // Vidí jen admin
-  PUBLISHED   // Vidí zaměstnanec
-  OFFERED     // Nabídka v burze pro brigádníky
+  DRAFT
+  OFFERED
+  PREFERENCES
+  GENERATED     
+  PUBLISHED     
 }
 
 enum AvailabilityType {
   AVAILABLE
   UNAVAILABLE
   PREFERRED   // Chci tuhle směnu/čas
+}
+
+enum VacationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VacationType {
+  VACATION
+  SICK_LEAVE
+  OTHER
 }

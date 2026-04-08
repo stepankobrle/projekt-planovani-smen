@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie"; // Nezapomeň: npm install js-cookie
 
 export default function LoginPage() {
 	const [email, setEmail] = useState("");
@@ -16,71 +17,84 @@ export default function LoginPage() {
 		setLoading(true);
 
 		try {
-			const response = await fetch("http://localhost:3001/auth/login", {
+			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"}/auth/login`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
+				credentials: "include", // Přijmout HttpOnly cookies od backendu
 				body: JSON.stringify({ email, password }),
 			});
 
 			const data = await response.json();
 
 			if (response.ok) {
-				localStorage.setItem("token", data.access_token);
-				if (data.user) {
-					localStorage.setItem("user", JSON.stringify(data.user));
+				// access_token je nyní v HttpOnly cookie (nastavil backend)
+				// Ukládáme jen uživatelská data pro UI routing (bez citlivého tokenu)
+				if (data.user && data.user.role && data.user.id) {
+					Cookies.set("id", data.user.id, { expires: 1 });
+					Cookies.set("role", data.user.role, { expires: 1 });
 				}
-				router.push("/dashboard");
+
+				const role = data.user?.role;
+				if (role === "ADMIN" || role === "MANAGER") {
+					router.push("/admin/dashboard");
+				} else {
+					router.push("/dashboard");
+				}
+				router.refresh();
 			} else {
 				setError(data.message || "Neplatné přihlašovací údaje");
 			}
-		} catch (err: any) {
-			setError(
-				"Nepodařilo se připojit k serveru. Zkontroluj, zda běží backend.",
-			);
+		} catch {
+			setError("Nepodařilo se připojit k serveru. Zkontroluj, zda běží backend.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 font-sans">
 			<form
 				onSubmit={handleLogin}
-				className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
-				<h1 className="text-2xl font-bold mb-6 text-center text-gray-800">
-					Přihlášení do systému
-				</h1>
+				className="w-full max-w-md bg-white p-10 rounded-2xl shadow-xl border border-slate-100">
+				<div className="mb-8 text-center">
+					<h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">
+						Vítejte zpět
+					</h1>
+					<p className="text-slate-400 text-sm font-medium mt-2">
+						Přihlaste se do systému správy směn
+					</p>
+				</div>
 
 				{error && (
-					<div className="mb-4 p-3 bg-red-100 text-red-600 text-sm rounded border border-red-200 text-center">
+					<div className="mb-6 p-4 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100 text-center uppercase tracking-wide">
 						{error}
 					</div>
 				)}
 
 				<div className="mb-4">
-					<label className="block text-sm font-medium text-gray-700">
-						E-mail
+					<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">
+						E-mailová adresa
 					</label>
 					<input
 						type="email"
 						value={email}
 						onChange={(e) => setEmail(e.target.value)}
-						className="mt-1 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
-						placeholder="admin@test.cz"
+						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-secondary outline-none text-slate-700 transition-all font-medium"
+						placeholder="vas@email.cz"
 						required
 						disabled={loading}
 					/>
 				</div>
 
-				<div className="mb-6">
-					<label className="block text-sm font-medium text-gray-700">
+				<div className="mb-8">
+					<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">
 						Heslo
 					</label>
 					<input
 						type="password"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
-						className="mt-1 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-secondary outline-none text-slate-700 transition-all font-medium"
 						placeholder="••••••••"
 						required
 						disabled={loading}
@@ -90,12 +104,12 @@ export default function LoginPage() {
 				<button
 					type="submit"
 					disabled={loading}
-					className={`w-full p-2 rounded text-white font-semibold transition ${
+					className={`w-full p-4 rounded-xl text-white font-bold text-sm uppercase tracking-widest transition-all shadow-lg ${
 						loading
-							? "bg-blue-400 cursor-not-allowed"
-							: "bg-blue-600 hover:bg-blue-700 shadow-sm"
+							? "bg-brand-secondary/40 cursor-not-allowed"
+							: "bg-brand-secondary hover:bg-brand-secondary-hover hover:shadow-brand-secondary/20 active:scale-[0.98]"
 					}`}>
-					{loading ? "Přihlašování..." : "Přihlásit se"}
+					{loading ? "Ověřování..." : "Přihlásit se"}
 				</button>
 			</form>
 		</div>
