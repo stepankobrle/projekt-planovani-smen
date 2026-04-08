@@ -98,6 +98,7 @@ const buildPrismaMock = (
       ),
     },
     notification: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    $transaction: jest.fn().mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
   };
 };
 
@@ -226,11 +227,12 @@ describe('ScheduleService.runAutoAssignment', () => {
     const emp1 = makeEmployee('e1');
     const emp2 = makeEmployee('e2');
 
-    // emp1 má již 80h odpracováno v tomto období
+    // emp1 má již 10 směn (cca 75h čistých) odpracováno v aktuálním období (od dne 3 dál)
+    // — musí být po dateFrom (1. března), jinak se nezapočítají do workLoad
     const emp1Assigned = Array.from({ length: 10 }, (_, i) => ({
       assignedUserId: 'e1',
-      startDatetime: d(8, -(i * 2 + 2)),
-      endDatetime: d(16, -(i * 2 + 2)),
+      startDatetime: d(8, i + 3),
+      endDatetime: d(16, i + 3),
     }));
 
     const prisma = buildPrismaMock([s1, s2], [emp1, emp2], emp1Assigned);

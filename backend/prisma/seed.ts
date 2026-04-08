@@ -241,6 +241,48 @@ async function main() {
     });
   }
 
+  // --- MARKETPLACE (BURZA SMĚN) ---
+  // Směny nabídnuté na burzu – zaměstnanec je stále přiřazen, ale isMarketplace=true
+  const marketplaceShifts = [
+    {
+      start: '2026-03-26T06:00:00', end: '2026-03-26T14:00:00',
+      userId: jan.id, shiftTypeId: ranni.id, jobPositionId: pokladni.id,
+      label: 'Jan Novák nabízí ranní 26.3.',
+    },
+    {
+      start: '2026-03-27T14:00:00', end: '2026-03-27T22:00:00',
+      userId: marie.id, shiftTypeId: odpoledni.id, jobPositionId: pokladni.id,
+      label: 'Marie Svobodová nabízí odpolední 27.3.',
+    },
+    {
+      start: '2026-03-28T06:00:00', end: '2026-03-28T14:00:00',
+      userId: petr.id, shiftTypeId: ranni.id, jobPositionId: skladnik.id,
+      label: 'Petr Dvořák nabízí ranní 28.3.',
+    },
+    {
+      start: '2026-03-29T14:00:00', end: '2026-03-29T22:00:00',
+      userId: tomas.id, shiftTypeId: odpoledni.id, jobPositionId: pokladni.id,
+      label: 'Tomáš Beneš nabízí odpolední 29.3.',
+    },
+  ];
+  for (const s of marketplaceShifts) {
+    await prisma.shift.create({
+      data: {
+        startDatetime: new Date(s.start),
+        endDatetime: new Date(s.end),
+        status: 'PUBLISHED',
+        locationId: location.id,
+        assignedUserId: s.userId,
+        offeredById: s.userId,
+        isMarketplace: true,
+        shiftTypeId: s.shiftTypeId,
+        jobPositionId: s.jobPositionId,
+        scheduleGroupId: scheduleGroup.id,
+      },
+    });
+    console.log(`  Burza: ${s.label}`);
+  }
+
   // --- VACATION REQUESTS ---
   await prisma.vacationRequest.create({
     data: {

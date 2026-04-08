@@ -69,16 +69,14 @@ export default function VacationsPage() {
 			setForm({ startDate: "", endDate: "", note: "" });
 			fetchRequests();
 		} catch (err: any) {
-			setError(
-				err.response?.data?.message || "Chyba při odesílání žádosti.",
-			);
+			setError(err.response?.data?.message || "Chyba při odesílání žádosti.");
 		} finally {
 			setSubmitting(false);
 		}
 	};
 
 	return (
-		<div className="max-w-2xl mx-auto space-y-8">
+		<div className="max-w-2xl mx-auto space-y-8 pt-10">
 			{/* FORMULÁŘ */}
 			<div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
 				<h2 className="text-lg font-black text-slate-800 uppercase tracking-tight mb-6">
@@ -120,9 +118,7 @@ export default function VacationsPage() {
 								type="date"
 								required
 								value={form.endDate}
-								onChange={(e) =>
-									setForm({ ...form, endDate: e.target.value })
-								}
+								onChange={(e) => setForm({ ...form, endDate: e.target.value })}
 								className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-brand-secondary"
 							/>
 						</div>
