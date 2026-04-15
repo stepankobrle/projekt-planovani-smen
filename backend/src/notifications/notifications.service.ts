@@ -114,7 +114,7 @@ export class NotificationsService {
 
   /**
    * Vrátí Observable pro SSE stream.
-   * Emituje okamžitě při nové notifikaci nebo přečtení,
+   * Emituje okamžitě při nové notifikaci nebo přečtení,D
    * + záložní polling každých 30 sekund.
    */
   getStream(userId: string): Observable<MessageEvent> {

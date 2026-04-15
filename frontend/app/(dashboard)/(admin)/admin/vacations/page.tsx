@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Search } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/app/components/ProtectedRoute";
+import { PageContainer, HeroHeader, OverlapPanel, TableCard } from "@/app/components/AdminLayout";
+import "../dashboard/dashboard.css";
 
 type Status = "PENDING" | "APPROVED" | "REJECTED";
 type FilterTab = "ALL" | Status;
@@ -18,26 +20,26 @@ interface VacationRequest {
 	user: { fullName: string | null; email: string };
 }
 
-const statusConfig: Record<Status, { label: string; className: string }> = {
+const statusConfig: Record<Status, { label: string; bg: string; color: string; border: string }> = {
 	PENDING: {
 		label: "Čeká",
-		className: "bg-amber-50 text-amber-600 border-amber-200",
+		bg: "rgba(212,152,12,.1)", color: "#D4980C", border: "1px solid rgba(212,152,12,.2)",
 	},
 	APPROVED: {
 		label: "Schváleno",
-		className: "bg-green-50 text-green-600 border-green-200",
+		bg: "rgba(104,178,160,.1)", color: "#68B2A0", border: "1px solid rgba(104,178,160,.2)",
 	},
 	REJECTED: {
 		label: "Zamítnuto",
-		className: "bg-red-50 text-red-600 border-red-200",
+		bg: "rgba(200,90,48,.1)", color: "#C85A30", border: "1px solid rgba(200,90,48,.2)",
 	},
 };
 
-const tabs: { key: FilterTab; label: string }[] = [
+const tabs: { key: FilterTab; label: string; alert?: boolean }[] = [
 	{ key: "PENDING", label: "Čekající" },
-	{ key: "ALL", label: "Vše" },
+	{ key: "ALL", label: "Všechny" },
 	{ key: "APPROVED", label: "Schválené" },
-	{ key: "REJECTED", label: "Zamítnuté" },
+	{ key: "REJECTED", label: "Zamítnuté", alert: true },
 ];
 
 export default function AdminVacationsPage() {
@@ -75,135 +77,147 @@ export default function AdminVacationsPage() {
 		}
 	};
 
-	const filtered =
-		filter === "ALL" ? requests : requests.filter((r) => r.status === filter);
+	const filtered = filter === "ALL" ? requests : requests.filter((r) => r.status === filter);
 	const pendingCount = requests.filter((r) => r.status === "PENDING").length;
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-					Žádosti o dovolenou
-				</h1>
-				<p className="text-slate-500 text-sm mt-1">
-					Schvalování a zamítání žádostí zaměstnanců.
-				</p>
-			</div>
+		<PageContainer>
+			
+			<HeroHeader
+				subtitle="Správa volna"
+				title="Žádosti o dovolenou"
+			/>
 
-			{/* FILTRY */}
-			<div className="flex gap-2 flex-wrap">
-				{tabs.map((tab) => (
-					<button
-						key={tab.key}
-						onClick={() => setFilter(tab.key)}
-						className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-							filter === tab.key
-								? "bg-brand-secondary text-brand-text-on-primary shadow-sm"
-								: "bg-white border border-slate-200 text-slate-500 hover:border-brand-secondary/50 hover:text-brand-secondary"
-						}`}>
-						{tab.label}
-						{tab.key === "PENDING" && pendingCount > 0 && (
-							<span
-								className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-									filter === "PENDING"
-										? "bg-white/20 text-white"
-										: "bg-amber-100 text-amber-600"
-								}`}>
-								{pendingCount}
-							</span>
+			<OverlapPanel delay="100ms">
+				
+				<div className="flex flex-col sm:flex-row gap-3 w-full lg:justify-between items-center">
+					<div className="text-sm font-bold" style={{ color: "#2C6975" }}>
+						{pendingCount > 0 ? (
+							<span>Máte <span style={{ color: "#C85A30" }}>{pendingCount}</span> nevyřízených žádostí</span>
+						) : (
+							<span>Všechny žádosti vyřízeny</span>
 						)}
-					</button>
-				))}
-			</div>
+					</div>
+					
+					<div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+						{tabs.map((tab) => {
+							const active = filter === tab.key;
+							return (
+								<button
+									key={tab.key}
+									onClick={() => setFilter(tab.key)}
+									className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border whitespace-nowrap"
+									style={{
+										background: active ? (tab.alert ? "#C85A30" : "#2C6975") : "white",
+										color: active ? "#ffffff" : (tab.alert ? "#C85A30" : "#5A8A8A"),
+										borderColor: active ? "transparent" : (tab.alert ? "rgba(200,90,48,.2)" : "#DDF0E8"),
+									}}>
+									{tab.label}
+									{tab.key === "PENDING" && pendingCount > 0 && (
+										<span style={{
+											background: active ? "rgba(255,255,255,.2)" : "rgba(212,152,12,.1)",
+											color: active ? "white" : "#D4980C",
+											padding: "2px 6px", borderRadius: 99, fontSize: 10,
+										}}>
+											{pendingCount}
+										</span>
+									)}
+								</button>
+							);
+						})}
+					</div>
+				</div>
+			</OverlapPanel>
 
-			{/* OBSAH */}
 			{loading ? (
-				<div className="text-center py-16 text-slate-400 text-sm">
-					Načítám žádosti...
+				<div className="flex-1 flex justify-center items-center">
+					<div className="text-sm font-bold" style={{ color: "#9ABABA" }}>Načítám žádosti...</div>
 				</div>
 			) : filtered.length === 0 ? (
-				<div className="bg-white p-12 rounded-2xl border-2 border-dashed border-slate-200 text-center text-slate-400">
-					Žádné žádosti k zobrazení.
+				<div className="flex-1 px-6 py-6 md:px-24 md:pb-11 md:pt-4">
+					<div className="card h-40 flex items-center justify-center a-up" style={{ textAlign: "center", color: "#9ABABA" }}>
+						Žádné žádosti k zobrazení.
+					</div>
 				</div>
 			) : (
-				<div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
-					<table className="w-full min-w-[700px] text-left border-collapse">
-						<thead>
-							<tr className="bg-slate-50/50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-								<th className="px-6 py-4 font-semibold">Zaměstnanec</th>
-								<th className="px-6 py-4 font-semibold">Období</th>
-								<th className="px-6 py-4 font-semibold">Poznámka</th>
-								<th className="px-6 py-4 font-semibold">Podáno</th>
-								<th className="px-6 py-4 font-semibold">Stav</th>
-								<th className="px-6 py-4 font-semibold text-right">Akce</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-slate-100">
-							{filtered.map((req) => {
-								const status = statusConfig[req.status];
-								const isProcessing = processingId === req.id;
-								return (
-									<tr
-										key={req.id}
-										className="hover:bg-slate-50/50 transition-colors">
-										<td className="px-6 py-4">
-											<div className="flex items-center gap-3">
-												<div className="h-9 w-9 rounded-full bg-brand-secondary/10 flex items-center justify-center text-brand-secondary font-bold text-sm">
-													{req.user.fullName?.[0] ?? "?"}
-												</div>
-												<div>
-													<div className="font-semibold text-slate-900 text-sm">
-														{req.user.fullName ?? "—"}
+				<TableCard delay="180ms">
+					<thead style={{ position: "sticky", top: 0, zIndex: 5, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(10px)" }}>
+						<tr style={{ borderBottom: "2px solid #DDF0E8" }}>
+							{["Zaměstnanec", "Období", "Poznámka", "Podáno", "Stav", "Akce"].map((h, i) => (
+								<th key={h} className={`px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase ${i === 5 ? "text-right" : ""}`} style={{ color: "#9ABABA" }}>
+									{h}
+								</th>
+							))}
+						</tr>
+					</thead>
+					<tbody>
+									{filtered.map((req, index) => {
+										const status = statusConfig[req.status];
+										const isProcessing = processingId === req.id;
+										return (
+											<tr key={req.id} className="a-fade border-b border-[#DDF0E8] last:border-0 transition-colors hover:bg-[#E6F2EE]" style={{ "--d": `${index * 30}ms` } as React.CSSProperties}>
+												
+												<td className="px-4 py-4">
+													<div className="flex items-center gap-3">
+														<div className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-[13px]" style={{ background: "rgba(104,178,160,.15)", color: "#2C6975" }}>
+															{req.user.fullName?.[0] ?? "?"}
+														</div>
+														<div>
+															<div className="font-semibold text-[13px]" style={{ color: "#0F2E35" }}>
+																{req.user.fullName ?? "—"}
+															</div>
+															<div className="text-[11px]" style={{ color: "#9ABABA" }}>
+																{req.user.email}
+															</div>
+														</div>
 													</div>
-													<div className="text-xs text-slate-400">
-														{req.user.email}
-													</div>
-												</div>
-											</div>
-										</td>
-										<td className="px-6 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
-											{new Date(req.startDate).toLocaleDateString("cs-CZ")} –{" "}
-											{new Date(req.endDate).toLocaleDateString("cs-CZ")}
-										</td>
-										<td className="px-6 py-4 text-sm text-slate-500 max-w-[200px] truncate">
-											{req.note ?? (
-												<span className="text-slate-300">—</span>
-											)}
-										</td>
-										<td className="px-6 py-4 text-xs text-slate-400 whitespace-nowrap">
-											{new Date(req.createdAt).toLocaleDateString("cs-CZ")}
-										</td>
-										<td className="px-6 py-4">
-											<span
-												className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase border ${status.className}`}>
-												{status.label}
-											</span>
-										</td>
-										<td className="px-6 py-4 text-right">
-											{req.status === "PENDING" && (
-												<div className="flex items-center justify-end gap-2">
-													<button
-														disabled={isProcessing}
-														onClick={() => handleAction(req.id, "approve")}
-														className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 border border-green-200 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors disabled:opacity-50">
-														<CheckCircle2 size={14} /> Schválit
-													</button>
-													<button
-														disabled={isProcessing}
-														onClick={() => handleAction(req.id, "reject")}
-														className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50">
-														<XCircle size={14} /> Zamítnout
-													</button>
-												</div>
-											)}
-										</td>
-									</tr>
-								);
-							})}
-						</tbody>
-					</table>
-				</div>
+												</td>
+												
+												<td className="px-4 py-4 text-[13px] font-semibold whitespace-nowrap" style={{ color: "#2C6975" }}>
+													{new Date(req.startDate).toLocaleDateString("cs-CZ")} –{" "}
+													{new Date(req.endDate).toLocaleDateString("cs-CZ")}
+												</td>
+												
+												<td className="px-4 py-4 text-[12px] max-w-[200px] truncate" style={{ color: "#5A8A8A" }}>
+													{req.note ?? <span style={{ color: "#DDF0E8" }}>—</span>}
+												</td>
+												
+												<td className="px-4 py-4 text-[11px] whitespace-nowrap" style={{ color: "#9ABABA" }}>
+													{new Date(req.createdAt).toLocaleDateString("cs-CZ")}
+												</td>
+												
+												<td className="px-4 py-4">
+													<span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-[0.05em]" style={{ background: status.bg, color: status.color, border: status.border }}>
+														{status.label}
+													</span>
+												</td>
+												
+												<td className="px-4 py-4 text-right">
+													{req.status === "PENDING" && (
+														<div className="flex items-center justify-end gap-2">
+															<button
+																disabled={isProcessing}
+																onClick={() => handleAction(req.id, "approve")}
+																className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 border shadow-sm"
+																style={{ background: "#F0F7F4", color: "#68B2A0", borderColor: "rgba(104,178,160,.3)" }}>
+																<CheckCircle2 size={14} /> Schválit
+															</button>
+															<button
+																disabled={isProcessing}
+																onClick={() => handleAction(req.id, "reject")}
+																className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 border shadow-sm"
+																style={{ background: "#fff", color: "#C85A30", borderColor: "rgba(200,90,48,.3)" }}>
+																<XCircle size={14} /> Zamítnout
+															</button>
+														</div>
+													)}
+												</td>
+											</tr>
+										);
+									})}
+								</tbody>
+				</TableCard>
 			)}
-		</div>
+		</PageContainer>
 	);
 }

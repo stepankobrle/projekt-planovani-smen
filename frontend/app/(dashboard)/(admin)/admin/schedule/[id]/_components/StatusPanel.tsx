@@ -9,11 +9,11 @@ interface StatusPanelProps {
 	onAutoGenerate: () => void;
 }
 
-const STATUS_COLORS: Record<ScheduleStatus, string> = {
-	DRAFT: "bg-slate-100 text-slate-500",
-	PREFERENCES: "bg-indigo-100 text-indigo-600",
-	GENERATED: "bg-blue-100 text-blue-600",
-	PUBLISHED: "bg-green-100 text-green-600",
+const STATUS_DOT: Record<ScheduleStatus, string> = {
+	DRAFT: "#9ABABA",
+	PREFERENCES: "#F5A623",
+	GENERATED: "#68B2A0",
+	PUBLISHED: "#3EBD8A",
 };
 
 const STATUS_LABELS: Record<ScheduleStatus, string> = {
@@ -23,78 +23,165 @@ const STATUS_LABELS: Record<ScheduleStatus, string> = {
 	PUBLISHED: "Publikováno",
 };
 
-function AutoGenerateButton({ generating, onClick }: { generating: boolean; onClick: () => void }) {
+const btnBase: React.CSSProperties = {
+	borderRadius: 12,
+	padding: "12px 24px",
+	fontSize: 11,
+	fontWeight: 800,
+	textTransform: "uppercase",
+	letterSpacing: "0.08em",
+	cursor: "pointer",
+	border: "none",
+	transition: "all .15s",
+};
+
+function TealBtn({
+	onClick,
+	children,
+	variant = "primary",
+	disabled,
+}: {
+	onClick: () => void;
+	children: React.ReactNode;
+	variant?: "primary" | "secondary" | "ghost";
+	disabled?: boolean;
+}) {
+	const styles: Record<string, React.CSSProperties> = {
+		primary: {
+			...btnBase,
+			background: "linear-gradient(135deg, #1C4E5A 0%, #2C6975 100%)",
+			color: "#fff",
+			boxShadow: "0 4px 16px rgba(28,78,90,.25)",
+		},
+		secondary: {
+			...btnBase,
+			background: "#F0F7F4",
+			color: "#1C4E5A",
+			border: "1px solid #DDF0E8",
+		},
+		ghost: {
+			...btnBase,
+			background: "transparent",
+			color: "#9ABABA",
+			border: "1px solid #DDF0E8",
+		},
+	};
 	return (
 		<button
 			onClick={onClick}
-			disabled={generating}
-			className={`px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg hover:shadow-xl transition-all flex items-center gap-2 ${
-				generating ? "opacity-70 cursor-not-allowed" : "hover:scale-105"
-			}`}>
-			{generating ? (
-				<>
-					<svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-						<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-						<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-					</svg>
-					Generuji...
-				</>
-			) : (
-				<>🤖 Automaticky obsadit</>
-			)}
+			disabled={disabled}
+			style={{ ...styles[variant], opacity: disabled ? 0.6 : 1, cursor: disabled ? "not-allowed" : "pointer" }}>
+			{children}
 		</button>
 	);
 }
 
-export function StatusPanel({ status, generating, onChangeStatus, onAutoGenerate }: StatusPanelProps) {
+export function StatusPanel({
+	status,
+	generating,
+	onChangeStatus,
+	onAutoGenerate,
+}: StatusPanelProps) {
+	const dot = STATUS_DOT[status];
+	const label = STATUS_LABELS[status];
+
 	return (
-		<div className="flex flex-col items-center gap-4 bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-			<div className="flex items-center gap-2">
-				<span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Stav rozvrhu:</span>
-				<span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${STATUS_COLORS[status]}`}>
-					{STATUS_LABELS[status]}
+		<div
+			className="card"
+			style={{
+				padding: "24px 28px",
+				display: "flex",
+				flexWrap: "wrap",
+				alignItems: "center",
+				justifyContent: "space-between",
+				gap: 16,
+			}}>
+			{/* Stav */}
+			<div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+				<span
+					style={{
+						fontSize: 10,
+						fontWeight: 600,
+						color: "#9ABABA",
+						letterSpacing: "0.12em",
+						textTransform: "uppercase",
+					}}>
+					Stav rozvrhu
 				</span>
+				<div
+					style={{
+						display: "flex",
+						alignItems: "center",
+						gap: 8,
+						background: "#F0F7F4",
+						border: "1px solid #DDF0E8",
+						borderRadius: 99,
+						padding: "6px 14px",
+					}}>
+					<span
+						className="a-pulse"
+						style={{
+							width: 7,
+							height: 7,
+							borderRadius: "50%",
+							background: dot,
+							boxShadow: `0 0 6px ${dot}`,
+							flexShrink: 0,
+						}}
+					/>
+					<span style={{ fontSize: 12, fontWeight: 700, color: "#1C4E5A" }}>
+						{label}
+					</span>
+				</div>
 			</div>
 
-			{status === "DRAFT" && (
-				<button
-					onClick={() => onChangeStatus("PREFERENCES")}
-					className="px-8 py-3 bg-indigo-600 text-white rounded-xl text-[11px] font-black uppercase shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-105">
-					🔓 Otevřít pro preference
-				</button>
-			)}
+			{/* Akce */}
+			<div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+				{status === "DRAFT" && (
+					<TealBtn onClick={() => onChangeStatus("PREFERENCES")}>
+						🔓 Otevřít pro preference
+					</TealBtn>
+				)}
 
-			{status === "PREFERENCES" && (
-				<div className="flex flex-wrap justify-center gap-2">
-					<button
-						onClick={() => onChangeStatus("DRAFT")}
-						className="px-6 py-3 border border-slate-200 text-slate-400 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 transition-all">
-						← Zpět na úpravy
-					</button>
-					<AutoGenerateButton generating={generating} onClick={onAutoGenerate} />
-					<button
-						onClick={() => onChangeStatus("GENERATED")}
-						className="px-6 py-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-700 transition-all shadow-lg">
-						🔒 Uzavřít a Publikovat
-					</button>
-				</div>
-			)}
+				{status === "PREFERENCES" && (
+					<>
+						<TealBtn onClick={() => onChangeStatus("DRAFT")} variant="ghost">
+							← Zpět na úpravy
+						</TealBtn>
+						<TealBtn onClick={onAutoGenerate} disabled={generating}>
+							{generating ? (
+								<span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+									<svg className="animate-spin" style={{ width: 12, height: 12 }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+										<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+										<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+									</svg>
+									Generuji…
+								</span>
+							) : "🤖 Automaticky obsadit"}
+						</TealBtn>
+						<TealBtn onClick={() => onChangeStatus("GENERATED")} variant="secondary">
+							🔒 Uzavřít
+						</TealBtn>
+					</>
+				)}
 
-			{status === "GENERATED" && (
-				<div className="flex flex-wrap justify-center gap-2">
-					<button
-						onClick={onAutoGenerate}
-						disabled={generating}
-						className="px-6 py-3 border border-blue-200 text-blue-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-50 transition-all">
-						{generating ? "Generuji..." : "🤖 Znovu přegenerovat"}
-					</button>
-					<button
-						onClick={() => onChangeStatus("PUBLISHED")}
-						className="px-6 py-3 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-green-700 transition-all shadow-lg">
-						✓ Publikovat zaměstnancům
-					</button>
-				</div>
-			)}
+				{status === "GENERATED" && (
+					<>
+						<TealBtn onClick={onAutoGenerate} disabled={generating} variant="ghost">
+							{generating ? "Generuji…" : "🤖 Znovu přegenerovat"}
+						</TealBtn>
+						<TealBtn onClick={() => onChangeStatus("PUBLISHED")}>
+							✓ Publikovat zaměstnancům
+						</TealBtn>
+					</>
+				)}
+
+				{status === "PUBLISHED" && (
+					<TealBtn onClick={() => onChangeStatus("DRAFT")} variant="ghost">
+						↩ Vrátit do konceptu
+					</TealBtn>
+				)}
+			</div>
 		</div>
 	);
 }

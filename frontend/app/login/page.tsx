@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie"; // Nezapomeň: npm install js-cookie
+import Cookies from "js-cookie";
 
 export default function LoginPage() {
 	const [email, setEmail] = useState("");
@@ -20,15 +20,13 @@ export default function LoginPage() {
 			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"}/auth/login`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				credentials: "include", // Přijmout HttpOnly cookies od backendu
+				credentials: "include",
 				body: JSON.stringify({ email, password }),
 			});
 
 			const data = await response.json();
 
 			if (response.ok) {
-				// access_token je nyní v HttpOnly cookie (nastavil backend)
-				// Ukládáme jen uživatelská data pro UI routing (bez citlivého tokenu)
 				if (data.user && data.user.role && data.user.id) {
 					Cookies.set("id", data.user.id, { expires: 1 });
 					Cookies.set("role", data.user.role, { expires: 1 });
@@ -52,66 +50,197 @@ export default function LoginPage() {
 	};
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 font-sans">
-			<form
-				onSubmit={handleLogin}
-				className="w-full max-w-md bg-white p-10 rounded-2xl shadow-xl border border-slate-100">
-				<div className="mb-8 text-center">
-					<h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">
-						Vítejte zpět
-					</h1>
-					<p className="text-slate-400 text-sm font-medium mt-2">
-						Přihlaste se do systému správy směn
+		<div
+			className="flex min-h-screen"
+			style={{ background: "var(--brand-primary)" }}
+		>
+			{/* ── Levý panel (desktop) ── */}
+			<div className="login-panel-animate hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col justify-between p-16"
+				style={{
+					background: "linear-gradient(140deg, #00010d 0%, #0b1f1e 55%, #1a403c 100%)",
+					borderRight: "1px solid rgba(191,184,163,0.06)",
+				}}
+			>
+				{/* Dekorativní kruhy */}
+				<div className="absolute -top-28 -right-28 w-[420px] h-[420px] rounded-full"
+					style={{ border: "1px solid rgba(26,64,60,0.5)" }} />
+				<div className="absolute top-12 -right-12 w-[300px] h-[300px] rounded-full"
+					style={{ border: "1px solid rgba(191,184,163,0.08)" }} />
+				<div className="absolute top-[30%] -right-8 w-[180px] h-[180px] rounded-full"
+					style={{ border: "1px solid rgba(245,158,11,0.1)" }} />
+				<div className="absolute -bottom-24 -left-24 w-[380px] h-[380px] rounded-full"
+					style={{ border: "1px solid rgba(26,64,60,0.4)" }} />
+				<div className="absolute bottom-24 left-8 w-[220px] h-[220px] rounded-full"
+					style={{ border: "1px solid rgba(191,184,163,0.06)" }} />
+
+				{/* Jemná mřížka */}
+				<div className="absolute inset-0 pointer-events-none" style={{
+					backgroundImage:
+						"repeating-linear-gradient(0deg,rgba(191,184,163,0.03) 0px,rgba(191,184,163,0.03) 1px,transparent 1px,transparent 72px)," +
+						"repeating-linear-gradient(90deg,rgba(191,184,163,0.03) 0px,rgba(191,184,163,0.03) 1px,transparent 1px,transparent 72px)",
+				}} />
+
+				{/* Logo / Brand */}
+				<div className="relative z-10 flex items-center gap-3">
+					<div className="w-9 h-9 rounded-lg flex items-center justify-center"
+						style={{ background: "var(--brand-secondary)", border: "1px solid rgba(191,184,163,0.15)" }}>
+						<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+							<rect x="2" y="2" width="6" height="6" rx="1" fill="#d9d3b8" fillOpacity="0.7" />
+							<rect x="10" y="2" width="6" height="6" rx="1" fill="#f59e0b" fillOpacity="0.8" />
+							<rect x="2" y="10" width="6" height="6" rx="1" fill="#d9d3b8" fillOpacity="0.4" />
+							<rect x="10" y="10" width="6" height="6" rx="1" fill="#d9d3b8" fillOpacity="0.25" />
+						</svg>
+					</div>
+					<span className="text-xs font-bold tracking-[0.22em] uppercase"
+						style={{ color: "var(--brand-text-on-primary)", opacity: 0.5 }}>
+						ShiftPlan
+					</span>
+				</div>
+
+				{/* Hlavní text */}
+				<div className="relative z-10">
+					<h2 className="text-[3.25rem] font-extrabold leading-[1.05] mb-7"
+						style={{ color: "var(--brand-text-on-primary)" }}>
+						Plánování<br />směn<br />
+						<span style={{ color: "var(--brand-warning)" }}>bez chaosu.</span>
+					</h2>
+					<p className="text-sm leading-relaxed max-w-[260px]"
+						style={{ color: "var(--brand-text-on-primary)", opacity: 0.38 }}>
+						Automatické generování optimálních rozvrhů pro vaši organizaci.
+					</p>
+
+					<div className="mt-10 space-y-4">
+						{[
+							"Automatické generování rozvrhů",
+							"Správa dostupnosti zaměstnanců",
+							"Export do PDF a kalendáře",
+						].map((feature) => (
+							<div key={feature} className="flex items-center gap-3">
+								<div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+									style={{ background: "var(--brand-warning)" }} />
+								<span className="text-xs tracking-wide"
+									style={{ color: "var(--brand-text-on-primary)", opacity: 0.38 }}>
+									{feature}
+								</span>
+							</div>
+						))}
+					</div>
+				</div>
+
+				{/* Footer levého panelu */}
+				<p className="relative z-10 text-[10px] tracking-[0.18em] uppercase"
+					style={{ color: "var(--brand-text-on-primary)", opacity: 0.18 }}>
+					© 2026 ShiftPlan
+				</p>
+			</div>
+
+			{/* ── Pravý panel — formulář ── */}
+			<div className="flex-1 flex items-center justify-center p-8 lg:p-16">
+				<div className="w-full max-w-[360px]">
+
+					{/* Hlavička formuláře */}
+					<div className="mb-10 login-animate" style={{ "--delay": "60ms" } as React.CSSProperties}>
+						<p className="text-[10px] font-bold tracking-[0.28em] uppercase mb-3"
+							style={{ color: "var(--brand-warning)" }}>
+							Systém správy směn
+						</p>
+						<h1 className="text-[2.4rem] font-extrabold leading-tight"
+							style={{ color: "var(--brand-text-on-primary)" }}>
+							Přihlášení
+						</h1>
+					</div>
+
+					{/* Chybová hláška */}
+					{error && (
+						<div className="mb-6 px-5 py-4 rounded-xl text-xs font-bold tracking-wider uppercase login-animate"
+							style={{
+								"--delay": "0ms",
+								background: "rgba(220,38,38,0.08)",
+								border: "1px solid rgba(220,38,38,0.25)",
+								color: "#f87171",
+							} as React.CSSProperties}>
+							{error}
+						</div>
+					)}
+
+					{/* Formulář */}
+					<form onSubmit={handleLogin} className="space-y-5">
+
+						{/* E-mail */}
+						<div className="login-animate" style={{ "--delay": "140ms" } as React.CSSProperties}>
+							<label className="block text-[10px] font-bold tracking-[0.22em] uppercase mb-2"
+								style={{ color: "var(--brand-text-on-primary)", opacity: 0.35 }}>
+								E-mailová adresa
+							</label>
+							<input
+								type="email"
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+								className="login-input w-full px-5 py-4 rounded-xl text-sm font-medium outline-none transition-all"
+								style={{
+									background: "rgba(255,255,255,0.04)",
+									border: "1px solid rgba(191,184,163,0.14)",
+									color: "var(--brand-text-on-primary)",
+								}}
+								placeholder="vas@email.cz"
+								required
+								disabled={loading}
+							/>
+						</div>
+
+						{/* Heslo */}
+						<div className="login-animate" style={{ "--delay": "210ms" } as React.CSSProperties}>
+							<label className="block text-[10px] font-bold tracking-[0.22em] uppercase mb-2"
+								style={{ color: "var(--brand-text-on-primary)", opacity: 0.35 }}>
+								Heslo
+							</label>
+							<input
+								type="password"
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								className="login-input w-full px-5 py-4 rounded-xl text-sm font-medium outline-none transition-all"
+								style={{
+									background: "rgba(255,255,255,0.04)",
+									border: "1px solid rgba(191,184,163,0.14)",
+									color: "var(--brand-text-on-primary)",
+								}}
+								placeholder="••••••••"
+								required
+								disabled={loading}
+							/>
+						</div>
+
+						{/* Tlačítko */}
+						<div className="pt-2 login-animate" style={{ "--delay": "290ms" } as React.CSSProperties}>
+							<button
+								type="submit"
+								disabled={loading}
+								className="login-btn w-full py-4 rounded-xl text-sm font-bold tracking-[0.18em] uppercase transition-all"
+								style={{
+									background: loading ? "rgba(26,64,60,0.35)" : "var(--brand-secondary)",
+									color: loading
+										? "rgba(217,211,184,0.35)"
+										: "var(--brand-text-on-primary)",
+									cursor: loading ? "not-allowed" : "pointer",
+									border: "1px solid rgba(191,184,163,0.1)",
+								}}
+							>
+								{loading ? "Ověřování..." : "Přihlásit se →"}
+							</button>
+						</div>
+					</form>
+
+					{/* Patička */}
+					<p className="mt-14 text-center text-[10px] tracking-wider login-animate"
+						style={{
+							"--delay": "380ms",
+							color: "var(--brand-text-on-primary)",
+							opacity: 0.18,
+						} as React.CSSProperties}>
+						Správa pracovních směn pro vaši organizaci
 					</p>
 				</div>
-
-				{error && (
-					<div className="mb-6 p-4 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100 text-center uppercase tracking-wide">
-						{error}
-					</div>
-				)}
-
-				<div className="mb-4">
-					<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">
-						E-mailová adresa
-					</label>
-					<input
-						type="email"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-secondary outline-none text-slate-700 transition-all font-medium"
-						placeholder="vas@email.cz"
-						required
-						disabled={loading}
-					/>
-				</div>
-
-				<div className="mb-8">
-					<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">
-						Heslo
-					</label>
-					<input
-						type="password"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-secondary outline-none text-slate-700 transition-all font-medium"
-						placeholder="••••••••"
-						required
-						disabled={loading}
-					/>
-				</div>
-
-				<button
-					type="submit"
-					disabled={loading}
-					className={`w-full p-4 rounded-xl text-white font-bold text-sm uppercase tracking-widest transition-all shadow-lg ${
-						loading
-							? "bg-brand-secondary/40 cursor-not-allowed"
-							: "bg-brand-secondary hover:bg-brand-secondary-hover hover:shadow-brand-secondary/20 active:scale-[0.98]"
-					}`}>
-					{loading ? "Ověřování..." : "Přihlásit se"}
-				</button>
-			</form>
+			</div>
 		</div>
 	);
 }

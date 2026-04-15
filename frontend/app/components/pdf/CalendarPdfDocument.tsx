@@ -30,24 +30,25 @@ Font.register({
 
 // Paleta barev
 const C = {
-	primary: "#4338ca", // indigo-700
-	primaryDark: "#312e81", // indigo-900
-	primaryLight: "#e0e7ff", // indigo-100
-	accent: "#6366f1", // indigo-500
-	weekend: "#f1f5f9", // slate-100
-	weekendHeader: "#cbd5e1", // slate-300
-	border: "#e2e8f0", // slate-200
-	borderStrong: "#94a3b8", // slate-400
-	text: "#0f172a", // slate-900
-	textMuted: "#64748b", // slate-500
-	rowAlt: "#f8fafc", // slate-50
-	unassigned: "#fef2f2", // red-50
-	unassignedAccent: "#ef4444",
+	primary: "#1C4E5A",
+	primaryDark: "#152e36",
+	primaryLight: "#DDF0E8",
+	accent: "#2C6975",
+	weekend: "#F0F7F4",
+	weekendHeader: "#b8d8d4",
+	border: "#DDF0E8",
+	borderStrong: "#9ABABA",
+	text: "#0F2E35",
+	textMuted: "#68B2A0",
+	rowAlt: "#F7FBFA",
+	unassigned: "#fff5f0",
+	unassignedAccent: "#C85A30",
 	white: "#ffffff",
 };
 
-// 2. STYLY
-const styles = StyleSheet.create({
+// 2. STYLY – voláno uvnitř komponenty, aby se vždy použily aktuální hodnoty C
+function makeStyles() {
+return StyleSheet.create({
 	page: {
 		padding: 0,
 		fontFamily: "Roboto",
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
 	pageHeaderSubtitle: {
 		fontSize: 9,
 		fontWeight: 300,
-		color: "#a5b4fc", // indigo-300
+		color: "#68B2A0",
 		marginTop: 2,
 	},
 	pageHeaderRight: {
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
 	pageHeaderYear: {
 		fontSize: 10,
 		fontWeight: 300,
-		color: "#a5b4fc",
+		color: "#68B2A0",
 		marginTop: 1,
 	},
 
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	headerDayColWeekend: {
-		backgroundColor: "#5b50d6", // mírně jiný indigo pro víkend
+		backgroundColor: "#1a3d48",
 	},
 	headerDayNumber: {
 		fontSize: 7,
@@ -191,11 +192,11 @@ const styles = StyleSheet.create({
 	headerDayName: {
 		fontSize: 5,
 		fontWeight: 300,
-		color: "#c7d2fe", // indigo-200
+		color: "#68B2A0",
 		marginTop: 1,
 	},
 	headerDayNameWeekend: {
-		color: "#fde68a", // amber-200 – vizuálně odlišit víkend
+		color: "#b8d8d4",
 	},
 
 	// === BLOK SMĚNY ===
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
 		color: C.primary,
 		fontWeight: 500,
 	},
-});
+}); }
 
 // 3. INTERFACE
 export interface ShiftData {
@@ -272,6 +273,7 @@ export const CalendarPdfDocument = ({
 	year,
 	monthIndex,
 }: PdfProps) => {
+	const styles = makeStyles();
 	// A) ZÍSKÁNÍ SEZNAMU DNÍ
 	const daysInMonth = new Date(year, monthIndex, 0).getDate();
 	const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -414,7 +416,7 @@ export const CalendarPdfDocument = ({
 									const date = new Date(year, monthIndex - 1, d);
 									const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
-									// Barva bloku: shiftType.colorCode > unassigned červená > výchozí indigo
+									// Barva bloku: shiftType.colorCode > unassigned oranžová > výchozí teal
 									const blockColor = emp.isUnassigned
 										? C.unassignedAccent
 										: (dayShift?.shiftType?.colorCode ?? C.accent);

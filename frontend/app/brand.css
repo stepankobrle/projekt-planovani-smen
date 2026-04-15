@@ -1,12 +1,12 @@
 :root {
 	/* === BRAND BARVY === */
-	--brand-primary: #00010d;
+	--brand-primary: #183b46;
 	--brand-primary-hover: #102426;
 
 	--brand-secondary: #1a403c;
 	--brand-secondary-hover: #102426;
 
-	--brand-surface: #eff5f9;
+	--brand-surface: #f5f0e8;
 	--brand-border: #bfb8a3;
 
 	--brand-success: #16a34a;
@@ -16,6 +16,18 @@
 	--brand-grey: #102426;
 
 	--brand-text-on-primary: #d9d3b8;
+
+	/* === GRADIENTY === */
+	--brand-gradient-hero: linear-gradient(
+		135deg,
+		#152e36 0%,
+		#1c4e5a 55%,
+		#2c6975 100%
+	);
+	--brand-gradient-chart-1: linear-gradient(135deg, #1C4E5A, #68B2A0);
+	--brand-gradient-chart-2: linear-gradient(135deg, #2C6975, #82C4B0);
+	--brand-gradient-chart-3: linear-gradient(135deg, #3A8090, #8ECFBC);
+	--brand-gradient-chart-4: linear-gradient(135deg, #286070, #70B8A8);
 }
 
 @theme inline {
@@ -30,4 +42,10 @@
 	--color-brand-danger: var(--brand-danger);
 	--color-brand-text-on-primary: var(--brand-text-on-primary);
 	--color-brand-grey: var(--brand-grey);
+
+	--background-image-hero-gradient: var(--brand-gradient-hero);
+	--background-image-chart-1: var(--brand-gradient-chart-1);
+	--background-image-chart-2: var(--brand-gradient-chart-2);
+	--background-image-chart-3: var(--brand-gradient-chart-3);
+	--background-image-chart-4: var(--brand-gradient-chart-4);
 }
