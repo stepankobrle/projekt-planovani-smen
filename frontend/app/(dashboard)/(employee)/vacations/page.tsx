@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { PageContainer, HeroHeader, OverlapPanel, TableCard } from "@/app/components/AdminLayout";
+import { Calendar, Loader2, Send } from "lucide-react";
+import "@/app/(dashboard)/(admin)/admin/dashboard/dashboard.css";
 
 interface VacationRequest {
 	id: string;
@@ -18,15 +21,15 @@ const statusConfig: Record<
 > = {
 	PENDING: {
 		label: "Čeká na schválení",
-		className: "bg-amber-50 text-amber-600 border-amber-200",
+		className: "bg-[#FDEEDC] text-[#C85A30] border-transparent",
 	},
 	APPROVED: {
 		label: "Schváleno",
-		className: "bg-green-50 text-green-600 border-green-200",
+		className: "bg-[#E6F2EE] text-[#68B2A0] border-transparent",
 	},
 	REJECTED: {
 		label: "Zamítnuto",
-		className: "bg-red-50 text-red-600 border-red-200",
+		className: "bg-[rgba(200,90,48,.1)] text-[#C85A30] border-[rgba(200,90,48,.2)]",
 	},
 };
 
@@ -76,127 +79,131 @@ export default function VacationsPage() {
 	};
 
 	return (
-		<div className="max-w-2xl mx-auto space-y-8 pt-10">
-			{/* FORMULÁŘ */}
-			<div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-				<h2 className="text-lg font-black text-slate-800 uppercase tracking-tight mb-6">
-					Nová žádost o dovolenou
-				</h2>
+		<PageContainer>
+			<HeroHeader subtitle="Plánování volna" title="Moje dovolená" />
 
-				{error && (
-					<div className="mb-4 p-3 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100 uppercase tracking-wide">
-						{error}
-					</div>
-				)}
-				{success && (
-					<div className="mb-4 p-3 bg-green-50 text-green-600 text-xs font-bold rounded-xl border border-green-100 uppercase tracking-wide">
-						{success}
-					</div>
-				)}
-
-				<form onSubmit={handleSubmit} className="space-y-4">
-					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-								Datum od
-							</label>
-							<input
-								type="date"
-								required
-								value={form.startDate}
-								onChange={(e) =>
-									setForm({ ...form, startDate: e.target.value })
-								}
-								className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-brand-secondary"
-							/>
+			<OverlapPanel delay="100ms">
+				<form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end w-full">
+					{error && (
+						<div className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-2 bg-[rgba(200,90,48,.1)] text-[#C85A30] text-[10px] font-black rounded-lg border border-[rgba(200,90,48,.2)] uppercase tracking-widest whitespace-nowrap opacity-0 animate-in fade-in slide-in-from-bottom-4">
+							{error}
 						</div>
-						<div>
-							<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-								Datum do
-							</label>
-							<input
-								type="date"
-								required
-								value={form.endDate}
-								onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-								className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-brand-secondary"
-							/>
+					)}
+					{success && (
+						<div className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-2 bg-[#E6F2EE] text-[#68B2A0] text-[10px] font-black rounded-lg border border-[#DDF0E8] uppercase tracking-widest whitespace-nowrap opacity-0 animate-in fade-in slide-in-from-bottom-4">
+							{success}
 						</div>
+					)}
+
+					<div className="w-full md:w-40 flex-shrink-0">
+						<label className="block text-[9px] font-black uppercase tracking-widest text-[#9ABABA] mb-1.5 ml-1">Od</label>
+						<input
+							type="date"
+							required
+							value={form.startDate}
+							onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+							className="w-full rounded-xl border border-[#DDF0E8] px-4 py-3 text-sm font-semibold text-[#0F2E35] outline-none transition-all hover:bg-[#F0F7F4] focus:bg-[#F0F7F4] focus:border-[#68B2A0]"
+						/>
+					</div>
+					
+					<div className="w-full md:w-40 flex-shrink-0">
+						<label className="block text-[9px] font-black uppercase tracking-widest text-[#9ABABA] mb-1.5 ml-1">Do</label>
+						<input
+							type="date"
+							required
+							value={form.endDate}
+							onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+							className="w-full rounded-xl border border-[#DDF0E8] px-4 py-3 text-sm font-semibold text-[#0F2E35] outline-none transition-all hover:bg-[#F0F7F4] focus:bg-[#F0F7F4] focus:border-[#68B2A0]"
+						/>
 					</div>
 
-					<div>
-						<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-							Poznámka (volitelné)
-						</label>
-						<textarea
+					<div className="w-full relative flex-1">
+						<label className="block text-[9px] font-black uppercase tracking-widest text-[#9ABABA] mb-1.5 ml-1">Poznámka</label>
+						<input
+							type="text"
 							value={form.note}
 							onChange={(e) => setForm({ ...form, note: e.target.value })}
-							rows={3}
-							className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium outline-none focus:ring-2 focus:ring-brand-secondary resize-none"
-							placeholder="Důvod nebo poznámka k žádosti..."
+							className="w-full rounded-xl border border-[#DDF0E8] px-4 py-3 text-sm font-semibold text-[#0F2E35] outline-none transition-all hover:bg-[#F0F7F4] focus:bg-[#F0F7F4] focus:border-[#68B2A0]"
+							placeholder="Důvod žádosti (nepovinné)..."
 						/>
 					</div>
 
 					<button
 						type="submit"
 						disabled={submitting}
-						className={`w-full p-3 rounded-xl text-white font-bold text-sm uppercase tracking-widest transition-all shadow ${
-							submitting
-								? "bg-brand-secondary/40 cursor-not-allowed"
-								: "bg-brand-secondary hover:bg-brand-secondary-hover"
-						}`}>
-						{submitting ? "Odesílám..." : "Odeslat žádost"}
+						className="relative h-[46px] w-full md:w-auto px-8 rounded-xl shadow-[0_4px_12px_rgba(44,105,117,.15)] font-bold text-xs uppercase tracking-wider text-white transition-all active:scale-95 disabled:scale-100 disabled:opacity-70 hover:brightness-110 flex items-center justify-center gap-2"
+						style={{ background: "linear-gradient(90deg, #2C6975, #68B2A0)" }}>
+						{submitting ? <Loader2 size={16} className="animate-spin" /> : <><Send size={16} /> Odeslat</>}
 					</button>
 				</form>
-			</div>
+			</OverlapPanel>
 
-			{/* SEZNAM ŽÁDOSTÍ */}
-			<div>
-				<h2 className="text-lg font-black text-slate-800 uppercase tracking-tight mb-4">
-					Moje žádosti
-				</h2>
+			<TableCard delay="180ms" isOverlapping={false}>
+				<thead style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(8px)" }}>
+					<tr style={{ borderBottom: "2px solid #DDF0E8" }}>
+						<th className="px-6 py-4 text-[10px] font-black tracking-[0.1em] uppercase" style={{ color: "#9ABABA" }}>Termín</th>
+						<th className="px-6 py-4 text-[10px] font-black tracking-[0.1em] uppercase" style={{ color: "#9ABABA" }}>Poznámka a detail</th>
+						<th className="px-6 py-4 text-[10px] font-black tracking-[0.1em] uppercase text-right" style={{ color: "#9ABABA" }}>Stav žádosti</th>
+					</tr>
+				</thead>
 
-				{loading ? (
-					<div className="text-center py-8 text-slate-400 text-sm">
-						Načítám...
-					</div>
-				) : requests.length === 0 ? (
-					<div className="bg-white p-8 rounded-2xl border-2 border-dashed border-slate-200 text-center text-slate-400 text-sm">
-						Zatím jste nepodali žádnou žádost.
-					</div>
-				) : (
-					<div className="space-y-3">
-						{requests.map((req) => {
+				<tbody className="divide-y divide-[#DDF0E8]">
+					{loading ? (
+						<tr>
+							<td colSpan={3} className="px-6 py-12 text-center text-[10px] font-black uppercase tracking-widest text-[#9ABABA] animate-pulse">
+								Načítám žádosti...
+							</td>
+						</tr>
+					) : requests.length === 0 ? (
+						<tr>
+							<td colSpan={3} className="px-6 py-16 text-center text-[10px] font-black uppercase tracking-widest text-[#9ABABA]">
+								Zatím jste nepodali žádnou žádost o dovolenou.
+							</td>
+						</tr>
+					) : (
+						requests.map((req, idx) => {
 							const status = statusConfig[req.status];
 							return (
-								<div
-									key={req.id}
-									className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center justify-between gap-4">
-									<div>
-										<div className="font-black text-slate-800">
-											{new Date(req.startDate).toLocaleDateString("cs-CZ")} –{" "}
-											{new Date(req.endDate).toLocaleDateString("cs-CZ")}
-										</div>
-										{req.note && (
-											<div className="text-xs text-slate-400 mt-0.5">
-												{req.note}
+								<tr key={req.id} className="a-fade transition-colors hover:bg-slate-50" style={{ "--d": `${idx * 30}ms` } as React.CSSProperties}>
+									<td className="px-6 py-4">
+										<div className="flex items-center gap-3">
+											<div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F0F7F4", color: "#68B2A0" }}>
+												<Calendar size={16} />
 											</div>
-										)}
-										<div className="text-[10px] text-slate-300 mt-1 uppercase tracking-wide">
-											Podáno:{" "}
-											{new Date(req.createdAt).toLocaleDateString("cs-CZ")}
+											<div>
+												<span className="font-extrabold text-[13px]" style={{ color: "#1C4E5A" }}>
+													{new Date(req.startDate).toLocaleDateString("cs-CZ", { day: "numeric", month: "short", year: "numeric" })} 
+													{" – "}
+													{new Date(req.endDate).toLocaleDateString("cs-CZ", { day: "numeric", month: "short", year: "numeric" })}
+												</span>
+											</div>
 										</div>
-									</div>
-									<span
-										className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase border whitespace-nowrap ${status.className}`}>
-										{status.label}
-									</span>
-								</div>
+									</td>
+									<td className="px-6 py-4">
+										{req.note ? (
+											<span className="text-[12px] font-semibold text-[#5A8A8A] truncate inline-block max-w-[300px]">
+												{req.note}
+											</span>
+										) : (
+											<span className="text-[12px] font-medium italic text-[#9ABABA]">
+												Bez poznámky
+											</span>
+										)}
+										<div className="text-[9px] font-black uppercase tracking-widest text-[#9ABABA] mt-1">
+											Podáno: {new Date(req.createdAt).toLocaleDateString("cs-CZ")}
+										</div>
+									</td>
+									<td className="px-6 py-4 text-right">
+										<span className={`inline-block px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-sm ${status.className}`}>
+											{status.label}
+										</span>
+									</td>
+								</tr>
 							);
-						})}
-					</div>
-				)}
-			</div>
-		</div>
+						})
+					)}
+				</tbody>
+			</TableCard>
+		</PageContainer>
 	);
 }

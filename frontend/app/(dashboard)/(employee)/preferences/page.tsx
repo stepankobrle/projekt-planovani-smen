@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/app/components/ProtectedRoute";
-import { Lock, Clock } from "lucide-react";
+import { Lock, Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Check, X, Star } from "lucide-react";
+import { PageContainer, HeroHeader, OverlapPanel } from "@/app/components/AdminLayout";
+import "@/app/(dashboard)/(admin)/admin/dashboard/dashboard.css";
 
 interface GroupedShift {
 	displayStart: string;
@@ -30,6 +32,7 @@ export default function EmployeePreferencesPage() {
 	const [shifts, setShifts] = useState<GroupedShift[]>([]);
 	const [groupStatus, setGroupStatus] = useState<GroupStatus>(null);
 	const [loading, setLoading] = useState(true);
+	const [showMonthPicker, setShowMonthPicker] = useState(false);
 
 	const monthNames = [
 		"Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
@@ -108,141 +111,174 @@ export default function EmployeePreferencesPage() {
 	const isLocked = effectiveStatus === "GENERATED" || effectiveStatus === "PUBLISHED";
 
 	return (
-		<div className="p-4 md:p-8 max-w-5xl mx-auto">
-			{/* NAVIGACE MĚSÍCŮ */}
-			<div className="flex items-center justify-center gap-6 mb-8 text-slate-800">
-				<button
-					onClick={() => moveMonth(-1)}
-					className="p-3 bg-white rounded-full shadow-sm hover:bg-slate-50 transition-colors">
-					←
-				</button>
-				<div className="bg-white px-12 py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[250px]">
-					<span className="text-2xl font-black uppercase tracking-tighter">
-						{monthNames[viewDate.month - 1]} {viewDate.year}
-					</span>
-				</div>
-				<button
-					onClick={() => moveMonth(1)}
-					className="p-3 bg-white rounded-full shadow-sm hover:bg-slate-50 transition-colors">
-					→
-				</button>
-			</div>
+		<PageContainer>
+			<HeroHeader subtitle="Měsíční plánovaní" title="Moje preference" />
 
-			{loading ? (
-				<div className="text-center py-10 text-slate-400">Načítám směny...</div>
-			) : effectiveStatus === "DRAFT" ? (
-				/* Rozvrh existuje, ale ještě nebyl otevřen pro preference */
-				<div className="flex flex-col items-center gap-4 bg-white p-10 rounded-4xl border border-slate-100 shadow-sm text-center">
-					<div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-						<Clock className="text-slate-400" size={32} />
-					</div>
-					<h2 className="text-lg font-black text-slate-700 uppercase tracking-tight">
-						Zatím uzavřeno
-					</h2>
-					<p className="text-slate-400 text-sm max-w-sm">
-						Pro tento měsíc zatím nebyly otevřeny preference.
-						Vyčkejte, až administrátor otevře rozvrh.
-					</p>
-				</div>
-			) : shifts.length === 0 ? (
-				<div className="bg-white p-8 rounded-4xl text-center border-2 border-dashed border-slate-200 text-slate-400">
-					Pro tento měsíc nejsou vypsané žádné směny.
-				</div>
-			) : (
-				<>
-					{/* Banner uzavřeného měsíce */}
-					{isLocked && (
-						<div className="flex items-center gap-3 bg-amber-50 text-amber-700 p-4 rounded-xl mb-6 border border-amber-200">
-							<Lock size={16} className="shrink-0" />
-							<span className="font-bold text-sm">
-								Tento měsíc je uzavřen. Preference již nelze měnit.
-							</span>
-						</div>
-					)}
-
-					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-						{shifts.map((group, index) => {
-							const start = new Date(group.displayStart);
-							const end = new Date(group.displayEnd);
-							const locked = isLocked || group.isLocked;
-
-							let cardStyle = "border-slate-100 bg-white";
-							if (group.userStatus === "AVAILABLE")
-								cardStyle = "border-green-500 bg-green-50 ring-2 ring-green-200";
-							else if (group.userStatus === "PREFERRED")
-								cardStyle = "border-amber-400 bg-amber-50 ring-2 ring-amber-200";
-							else if (group.userStatus === "UNAVAILABLE")
-								cardStyle = "opacity-60 bg-slate-50 grayscale";
-
-							if (locked) cardStyle += " opacity-80 cursor-not-allowed";
-
-							return (
-								<div
-									key={index}
-									className={`relative p-5 rounded-3xl border shadow-sm transition-all duration-300 ${cardStyle}`}>
-									<div className="flex justify-between items-start mb-4">
-										<div>
-											<div className="text-xs font-black uppercase text-slate-400 mb-1">
-												{start.toLocaleDateString("cs-CZ", {
-													weekday: "short",
-													day: "numeric",
-													month: "numeric",
-												})}
-											</div>
-											<div className="text-lg font-black text-slate-800">
-												{start.toLocaleTimeString([], {
-													hour: "2-digit",
-													minute: "2-digit",
-												})}{" "}
-												-{" "}
-												{end.toLocaleTimeString([], {
-													hour: "2-digit",
-													minute: "2-digit",
-												})}
-											</div>
-										</div>
-										<span
-											className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase shadow-sm"
-											style={{
-												backgroundColor: group.shiftType?.colorCode || "#eee",
-												color: "#333",
-											}}>
-											{group.shiftType?.name}
-										</span>
+			<OverlapPanel delay="100ms">
+				<div className="flex flex-col sm:flex-row items-center justify-center w-full gap-4">
+					{/* NAVIGACE MĚSÍCE JAKO V ADMINU */}
+					<div className="flex items-center gap-2">
+						<button onClick={() => moveMonth(-1)} className="p-2 rounded-xl text-[#5A8A8A] hover:bg-[#E6F2EE] transition-colors"><ChevronLeft size={18} /></button>
+						<div className="relative">
+							<button onClick={() => setShowMonthPicker((v) => !v)} className="flex items-center gap-2 px-8 py-3 rounded-xl border font-bold uppercase tracking-widest text-[#0F2E35] transition-all hover:bg-[#F0F7F4]" style={{ borderColor: "#DDF0E8" }}>
+								<Calendar size={16} className="text-[#68B2A0]" />
+								{monthNames[viewDate.month - 1]} {viewDate.year}
+								<ChevronDown size={14} className="text-[#9ABABA] ml-1" />
+							</button>
+							{showMonthPicker && (
+								<div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white rounded-2xl shadow-xl border p-4 w-72 origin-top" style={{ borderColor: "#DDF0E8" }}>
+									<div className="flex items-center justify-between mb-3">
+										<button onClick={() => setViewDate((prev) => ({ ...prev, year: prev.year - 1 }))} className="p-1.5 rounded-lg text-[#5A8A8A] hover:bg-[#F0F7F4] font-bold text-sm"><ChevronLeft size={16} /></button>
+										<span className="font-black text-[#0F2E35] text-sm">{viewDate.year}</span>
+										<button onClick={() => setViewDate((prev) => ({ ...prev, year: prev.year + 1 }))} className="p-1.5 rounded-lg text-[#5A8A8A] hover:bg-[#F0F7F4] font-bold text-sm"><ChevronRight size={16} /></button>
 									</div>
-
-									<div className="grid grid-cols-4 gap-2 mt-4">
-										<button
-											disabled={locked}
-											onClick={() => handleVote(group.shiftIds, "UNAVAILABLE")}
-											className={`col-span-1 py-3 rounded-xl font-black uppercase text-xs transition-all flex items-center justify-center
-												${group.userStatus === "UNAVAILABLE" ? "bg-slate-400 text-white" : "bg-white border border-slate-200 text-slate-300 hover:border-red-400 hover:text-red-400"}
-												${locked ? "pointer-events-none opacity-50" : ""}`}>
-											✕
-										</button>
-										<button
-											disabled={locked}
-											onClick={() => handleVote(group.shiftIds, "AVAILABLE")}
-											className={`col-span-2 py-3 rounded-xl font-black uppercase text-[10px] transition-all
-												${group.userStatus === "AVAILABLE" ? "bg-green-600 text-white shadow-green-200" : "bg-white border border-slate-200 text-slate-400 hover:border-green-500 hover:text-green-500"}
-												${locked ? "pointer-events-none opacity-50" : ""}`}>
-											{group.userStatus === "AVAILABLE" ? "Vybráno" : "Můžu"}
-										</button>
-										<button
-											disabled={locked}
-											onClick={() => handleVote(group.shiftIds, "PREFERRED")}
-											className={`col-span-1 py-3 rounded-xl font-black uppercase text-xs transition-all flex items-center justify-center
-												${group.userStatus === "PREFERRED" ? "bg-amber-400 text-white" : "bg-white border border-slate-200 text-amber-300 hover:border-amber-400 hover:text-amber-500"}
-												${locked ? "pointer-events-none opacity-50" : ""}`}>
-											★
-										</button>
+									<div className="grid grid-cols-3 gap-1.5">
+										{monthNames.map((name, idx) => (
+											<button
+												key={idx}
+												onClick={() => {
+													setViewDate((prev) => ({ ...prev, month: idx + 1 }));
+													setShowMonthPicker(false);
+												}}
+												className={`py-2 rounded-xl text-xs font-black uppercase tracking-tight transition-all ${
+													viewDate.month === idx + 1
+														? "bg-[#2C6975] text-white shadow-md shadow-[#2C6975]/30"
+														: "text-[#5A8A8A] hover:bg-[#F0F7F4]"
+												}`}>
+												{name.substring(0, 3)}
+											</button>
+										))}
 									</div>
 								</div>
-							);
-						})}
+							)}
+						</div>
+						<button onClick={() => moveMonth(1)} className="p-2 rounded-xl text-[#5A8A8A] hover:bg-[#E6F2EE] transition-colors"><ChevronRight size={18} /></button>
 					</div>
-				</>
-			)}
-		</div>
+				</div>
+			</OverlapPanel>
+
+			<div className="flex-1 px-6 md:px-24 md:pb-11 flex flex-col pt-2 min-h-0 relative z-10">
+				{loading ? (
+					<div className="text-center py-20 font-black tracking-widest uppercase text-[#9ABABA] text-[10px] animate-pulse">
+						Načítám směny...
+					</div>
+				) : effectiveStatus === "DRAFT" ? (
+					/* Rozvrh existuje, ale ještě nebyl otevřen pro preference */
+					<div className="card max-w-lg mx-auto w-full p-12 text-center flex flex-col items-center gap-4 a-up">
+						<div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#F0F7F4]">
+							<Clock className="text-[#9ABABA]" size={28} />
+						</div>
+						<h2 className="text-sm font-extrabold text-[#0F2E35] uppercase tracking-wider">
+							Zatím uzavřeno
+						</h2>
+						<p className="text-[11px] font-bold text-[#5A8A8A] leading-relaxed">
+							Pro tento měsíc zatím nebyly otevřeny preference. Vyčkejte prosím, až obdržíte upozornění od administrátora.
+						</p>
+					</div>
+				) : shifts.length === 0 ? (
+					<div className="card max-w-lg mx-auto w-full p-12 text-center a-up border-dashed" style={{ borderColor: "#DDF0E8" }}>
+						<p className="text-[10px] font-black uppercase tracking-widest text-[#9ABABA]">
+							Žádné směny poptávané v aktuálním měsíci.
+						</p>
+					</div>
+				) : (
+					<div className="w-full">
+						{/* Banner uzavřeného měsíce */}
+						{isLocked && (
+							<div className="a-fade flex gap-3 p-4 rounded-xl border bg-[rgba(200,90,48,.03)] text-[#C85A30] mb-6 max-w-sm" style={{ borderColor: 'rgba(200,90,48,.2)' }}>
+								<Lock size={18} className="shrink-0" />
+								<span className="font-bold text-[11px] uppercase tracking-wider mt-0.5">
+									Měsíc je uzavřen. Volby jsou zablokovány.
+								</span>
+							</div>
+						)}
+
+						<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+							{shifts.map((group, index) => {
+								const start = new Date(group.displayStart);
+								const end = new Date(group.displayEnd);
+								const locked = isLocked || group.isLocked;
+
+								let containerBg = "#fff";
+								let shadow = "0 8px 40px rgba(28,78,90,.04)";
+								let ringStyle = "";
+
+								if (group.userStatus === "AVAILABLE") {
+									containerBg = "#E6F2EE";
+									ringStyle = "inset 0 0 0 2px #68B2A0";
+								} else if (group.userStatus === "PREFERRED") {
+									containerBg = "#FDEEDC";
+									ringStyle = "inset 0 0 0 2px #E69D45";
+								} else if (group.userStatus === "UNAVAILABLE") {
+									containerBg = "#F0F7F4";
+								}
+
+								return (
+									<div
+										key={index}
+										className={`a-up relative p-6 rounded-3xl border transition-all duration-300 ${locked ? "opacity-75 grayscale-[0.3]" : "hover:-translate-y-1"}`}
+										style={{ 
+											background: containerBg, 
+											borderColor: "#DDF0E8", 
+											boxShadow: ringStyle || shadow,
+											"--d": `${index * 30}ms` 
+										} as React.CSSProperties}>
+										
+										<div className="flex justify-between items-start mb-6">
+											<div>
+												<div className="text-[10px] font-black uppercase text-[#9ABABA] tracking-widest mb-1.5 flex items-center gap-1.5">
+													<Calendar size={12} />
+													{start.toLocaleDateString("cs-CZ", {
+														weekday: "short",
+														day: "numeric",
+														month: "numeric",
+													})}
+												</div>
+												<div className="text-xl font-extrabold text-[#0F2E35] tracking-tight">
+													{start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+													{" - "}
+													{end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+												</div>
+											</div>
+											<span
+												className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-sm"
+												style={{ backgroundColor: group.shiftType?.colorCode || "#E6F2EE", color: "#0F2E35" }}>
+												{group.shiftType?.name}
+											</span>
+										</div>
+
+										<div className="grid grid-cols-4 gap-2">
+											<button
+												disabled={locked}
+												onClick={() => handleVote(group.shiftIds, "UNAVAILABLE")}
+												className={`col-span-1 h-11 rounded-xl transition-all flex items-center justify-center active:scale-95 disabled:active:scale-100 disabled:cursor-not-allowed border
+													${group.userStatus === "UNAVAILABLE" ? "bg-[#C85A30] border-transparent text-white shadow-md shadow-[#C85A30]/30" : "bg-white border-[#DDF0E8] text-[#9ABABA] hover:border-[#C85A30] hover:text-[#C85A30]"}`}>
+												<X size={18} strokeWidth={3} />
+											</button>
+											
+											<button
+												disabled={locked}
+												onClick={() => handleVote(group.shiftIds, "AVAILABLE")}
+												className={`col-span-2 h-11 rounded-xl font-black uppercase text-[10px] tracking-wider transition-all flex justify-center items-center gap-1.5 border active:scale-95 disabled:active:scale-100 disabled:cursor-not-allowed
+													${group.userStatus === "AVAILABLE" ? "bg-[#68B2A0] border-transparent text-white shadow-md shadow-[#68B2A0]/30" : "bg-white border-[#DDF0E8] text-[#5A8A8A] hover:border-[#68B2A0] hover:text-[#68B2A0]"}`}>
+												{group.userStatus === "AVAILABLE" ? <><Check size={14} strokeWidth={3} /> Vybráno</> : "Můžu"}
+											</button>
+											
+											<button
+												disabled={locked}
+												onClick={() => handleVote(group.shiftIds, "PREFERRED")}
+												className={`col-span-1 h-11 rounded-xl transition-all flex items-center justify-center active:scale-95 disabled:active:scale-100 disabled:cursor-not-allowed border
+													${group.userStatus === "PREFERRED" ? "bg-[#E69D45] border-transparent text-white shadow-md shadow-[#E69D45]/30" : "bg-white border-[#DDF0E8] text-[#E69D45] opacity-50 hover:opacity-100 hover:border-[#E69D45]"}`}>
+												<Star size={18} strokeWidth={locked ? 2.5 : 3} fill={group.userStatus === "PREFERRED" ? "currentColor" : "none"} />
+											</button>
+										</div>
+									</div>
+								);
+							})}
+						</div>
+					</div>
+				)}
+			</div>
+		</PageContainer>
 	);
 }
