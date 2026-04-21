@@ -1,0 +1,12 @@
+{
+  "name": "planovani-smen",
+  "private": true,
+  "scripts": {
+    "setup": "npm install --prefix backend && npm install --prefix frontend && npm run --prefix backend prisma:setup",
+    "dev": "concurrently \"npm run --prefix backend start:dev\" \"npm run --prefix frontend dev\"",
+    "build": "npm run --prefix backend build && npm run --prefix frontend build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
