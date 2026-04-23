@@ -3,6 +3,9 @@
 import React, { useEffect, useState, useMemo } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/app/components/ProtectedRoute";
+import { PageContainer, HeroHeader, OverlapPanel } from "@/app/components/AdminLayout";
+import "@/app/(dashboard)/(admin)/admin/dashboard/dashboard.css";
+import { Calendar, ChevronLeft, ChevronRight, ChevronDown, CheckCircle2, User, Users, RefreshCw } from "lucide-react";
 
 interface AssignedShift {
 	id: string;
@@ -26,6 +29,7 @@ export default function EmployeeSchedulePage() {
 		year: new Date().getFullYear(),
 		month: new Date().getMonth() + 1,
 	});
+	const [showMonthPicker, setShowMonthPicker] = useState(false);
 	const [allShifts, setAllShifts] = useState<AssignedShift[]>([]);
 	const [loading, setLoading] = useState(true);
 
@@ -85,7 +89,6 @@ export default function EmployeeSchedulePage() {
 		}
 	};
 
-	// Nabídnout lze jen pokud datum směny je přísně po dnešku (nejpozději den předem)
 	const canOfferShift = (shift: AssignedShift): boolean =>
 		shift.startDatetime.split("T")[0] > todayStr;
 
@@ -145,108 +148,106 @@ export default function EmployeeSchedulePage() {
 		const dateObj = new Date(dayGroup.date);
 		const isToday = dayGroup.date === todayStr;
 
+		const weekdayLong = dateObj.toLocaleDateString("cs-CZ", { weekday: "long" });
+		const dayNum = dateObj.getDate();
+		const monthNum = dateObj.getMonth() + 1;
+
 		return (
-			<div key={dayGroup.date}>
-				<div className="sticky top-4 z-10 flex items-center gap-3 mb-3">
-					<span
-						className={`px-3 py-1 rounded-lg text-xs font-bold uppercase ${
-							isToday
-								? "bg-brand-secondary text-brand-text-on-primary"
-								: isPast
-									? "bg-slate-100 border border-slate-200 text-slate-400"
-									: "bg-white border"
-						}`}>
-						{dateObj.toLocaleDateString("cs-CZ", {
-							weekday: "short",
-							day: "numeric",
-						})}
-					</span>
-					<div className="h-px flex-1 bg-slate-200"></div>
+			<div key={dayGroup.date} className="mb-6">
+				<div className="sticky top-0 z-10 flex items-center gap-4 mb-4 bg-[#F0F7F4]/90 backdrop-blur-md py-2 border-y border-[#DDF0E8]/50">
+					<div className="flex items-baseline gap-2">
+						<span className="text-xl font-extrabold text-[#1C4E5A]">{dayNum}.{monthNum}.</span>
+						<span className={`text-[11px] font-bold uppercase tracking-widest ${isToday ? "text-[#C85A30]" : "text-[#9ABABA]"}`}>
+							{isToday ? "Dnes" : weekdayLong}
+						</span>
+					</div>
+					<div className="h-px flex-1 bg-gradient-to-r from-[#DDF0E8] to-transparent"></div>
 				</div>
 
 				<div className="grid gap-3">
-					{dayGroup.shifts.map((shift) => {
+					{dayGroup.shifts.map((shift, i) => {
 						const isMine = shift.assignedUserId === user?.id;
 						const isOnMarket = shift.isMarketplace;
 						const canOffer = canOfferShift(shift);
 
-						let containerClasses = "bg-slate-50 border-slate-100 opacity-80";
+						let containerClasses = "bg-white border-[#DDF0E8]";
+						let shadowClasses = "shadow-sm";
+
 						if (isPast) {
 							containerClasses = isMine
-								? "bg-slate-50 border-slate-200 opacity-60"
-								: "bg-slate-50 border-slate-100 opacity-50";
-						} else if (isMine) {
-							containerClasses = "bg-white border-brand-secondary/30 ring-1 ring-brand-secondary/10";
+								? "bg-[rgba(255,255,255,.6)] border-[#DDF0E8]"
+								: "bg-[rgba(255,255,255,.4)] border-transparent";
+							shadowClasses = "shadow-none";
 						} else if (isOnMarket && !isMine) {
-							containerClasses = "bg-white border-green-300 ring-2 ring-green-100";
+							containerClasses = "bg-[#FDEEDC] border-[#E69D45]";
+							shadowClasses = "shadow-md shadow-[#E69D45]/10";
+						} else if (isMine) {
+							containerClasses = "bg-[#E6F2EE] border-[#68B2A0]";
+							shadowClasses = "shadow-md shadow-[#68B2A0]/10";
 						}
 
 						return (
 							<div
 								key={shift.id}
-								className={`p-4 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${containerClasses}`}>
-								<div className="flex items-center gap-3">
+								className={`a-fade p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 hover:-translate-y-1 ${containerClasses} ${shadowClasses}`}
+								style={{ "--d": `${i * 30}ms` } as React.CSSProperties}>
+								
+								<div className="flex items-stretch gap-4">
 									<div
-										className="w-1 h-10 rounded-full"
-										style={{
-											backgroundColor: shift.shiftType?.colorCode || "#ccc",
-										}}
+										className="w-1.5 rounded-full flex-shrink-0"
+										style={{ backgroundColor: shift.shiftType?.colorCode || "#C5DED9" }}
 									/>
 									<div>
-										<div className="text-md font-black text-slate-800">
-											{new Date(shift.startDatetime).toLocaleTimeString([], {
-												hour: "2-digit",
-												minute: "2-digit",
-											})}
-											-
-											{new Date(shift.endDatetime).toLocaleTimeString([], {
-												hour: "2-digit",
-												minute: "2-digit",
-											})}
+										<div className={`text-lg font-extrabold tracking-tight ${isPast ? "text-[#5A8A8A]" : "text-[#0F2E35]"}`}>
+											{new Date(shift.startDatetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+											{" – "}
+											{new Date(shift.endDatetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
 										</div>
-										<div className="text-xs font-bold text-slate-500 uppercase">
-											{shift.shiftType?.name || "Vlastní směna"} •{" "}
-											{shift.jobPosition.name}
+										<div className="text-[10px] font-black uppercase tracking-widest text-[#9ABABA] mt-0.5">
+											{shift.shiftType?.name || "Vlastní směna"} • {shift.jobPosition.name}
 										</div>
 									</div>
 								</div>
 
 								<div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-									<div>
+									<div className="flex items-center gap-2">
 										{isMine ? (
-											<span className="text-[10px] font-black uppercase bg-brand-secondary/15 text-brand-secondary px-2 py-1 rounded-md">
-												Já
+											<span className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-[#2C6975] text-white px-2.5 py-1.5 rounded-lg shadow-sm">
+												<User size={12} /> Moje směna
+											</span>
+										) : isOnMarket ? (
+											<span className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-white text-[#C85A30] border border-[#E69D45] px-2.5 py-1.5 rounded-lg shadow-sm">
+												<RefreshCw size={12} /> Na burze
 											</span>
 										) : (
-											<span className="text-xs font-bold text-slate-600">
-												{shift.assignedUser?.fullName || "Volno"}
+											<span className="flex items-center gap-1.5 text-[11px] font-bold text-[#5A8A8A]">
+												<Users size={12} className="text-[#9ABABA]" /> {shift.assignedUser?.fullName || "Volno"}
 											</span>
 										)}
 									</div>
 
-									{/* Tlačítka burzy — pouze pro budoucí směny */}
 									{!isPast && (
-										<>
+										<div className="flex gap-2">
 											{isMine && !isOnMarket && canOffer && (
 												<button
 													onClick={() => handleOfferShift(shift.id)}
-													className="px-3 py-1.5 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-lg border border-amber-200 hover:bg-amber-200 transition-colors">
-													♻️ Nabídnout
+													className="px-4 py-2 border text-[10px] font-black uppercase tracking-wider rounded-xl transition-all hover:bg-[#FDEEDC] hover:text-[#C85A30] hover:border-[#E69D45] bg-white text-[#5A8A8A] border-[#DDF0E8]">
+													Nabídnout
 												</button>
 											)}
 											{isMine && isOnMarket && (
-												<span className="px-3 py-1.5 bg-slate-100 text-slate-500 text-[10px] font-black uppercase rounded-lg border border-slate-200">
+												<span className="px-4 py-2 bg-white text-[#C85A30] text-[10px] font-black uppercase tracking-wider rounded-xl border border-[#E69D45] shadow-sm">
 													⏳ Nabízeno
 												</span>
 											)}
 											{!isMine && isOnMarket && (
 												<button
 													onClick={() => handleTakeShift(shift.id)}
-													className="px-3 py-1.5 bg-green-500 text-white text-[10px] font-black uppercase rounded-lg shadow-green-200 hover:bg-green-600 transition-colors animate-pulse">
-													✋ Vzít si
+													className="px-4 py-2 bg-[#C85A30] text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-[0_4px_12px_rgba(200,90,48,.25)] hover:brightness-110 active:scale-95 transition-all">
+													Vzít si
 												</button>
 											)}
-										</>
+										</div>
 									)}
 								</div>
 							</div>
@@ -258,65 +259,101 @@ export default function EmployeeSchedulePage() {
 	};
 
 	return (
-		<div className="p-4 md:p-8 max-w-3xl mx-auto min-h-screen">
-			{/* HLAVIČKA */}
-			<div className="flex flex-col items-center justify-center gap-4 mb-6">
-				<div className="bg-slate-100 p-1 rounded-xl flex shadow-inner">
-					<button
-						onClick={() => setViewMode("MINE")}
-						className={`px-6 py-2 rounded-lg text-sm font-black uppercase transition-all ${viewMode === "MINE" ? "bg-white text-brand-secondary shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
-						Moje směny
-					</button>
-					<button
-						onClick={() => setViewMode("ALL")}
-						className={`px-6 py-2 rounded-lg text-sm font-black uppercase transition-all ${viewMode === "ALL" ? "bg-white text-brand-secondary shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
-						Celý tým
-					</button>
-				</div>
+		<PageContainer>
+			<HeroHeader subtitle="Měsíční přehled" title="Moje směny a burza" />
 
-				<div className="flex items-center gap-6 bg-white p-2 rounded-full shadow-sm border border-slate-100">
-					<button onClick={() => moveMonth(-1)} className="p-2">←</button>
-					<span className="font-bold">{monthNames[viewDate.month - 1]}</span>
-					<button onClick={() => moveMonth(1)} className="p-2">→</button>
-				</div>
+			<OverlapPanel delay="100ms">
+				<div className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
+					<div className="flex bg-[#F0F7F4] p-1 rounded-xl">
+						<button
+							onClick={() => setViewMode("MINE")}
+							className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${viewMode === "MINE" ? "bg-white text-[#2C6975] shadow-sm" : "text-[#9ABABA] hover:bg-white/50"}`}>
+							Moje směny
+						</button>
+						<button
+							onClick={() => setViewMode("ALL")}
+							className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${viewMode === "ALL" ? "bg-white text-[#2C6975] shadow-sm" : "text-[#9ABABA] hover:bg-white/50"}`}>
+							Celý tým
+						</button>
+					</div>
 
-				{!loading && (
-					<div className="bg-brand-secondary/10 text-brand-secondary px-6 py-2 rounded-xl text-sm font-bold border border-brand-secondary/20">
-						Můj fond:{" "}
-						<span className="text-lg font-black">{myTotalHours.toFixed(1)}</span>{" "}
-						hod
+					<div className="flex items-center gap-2">
+						<button onClick={() => moveMonth(-1)} className="p-2 rounded-xl text-[#5A8A8A] hover:bg-[#E6F2EE] transition-colors"><ChevronLeft size={18} /></button>
+						<div className="relative">
+							<button onClick={() => setShowMonthPicker((v) => !v)} className="flex items-center gap-2 px-6 py-2.5 rounded-xl border font-bold uppercase tracking-widest text-[#0F2E35] transition-all hover:bg-[#F0F7F4]" style={{ borderColor: "#DDF0E8" }}>
+								<Calendar size={16} className="text-[#68B2A0]" />
+								{monthNames[viewDate.month - 1]} {viewDate.year}
+								<ChevronDown size={14} className="text-[#9ABABA] ml-1" />
+							</button>
+							{showMonthPicker && (
+								<div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white rounded-2xl shadow-xl border p-4 w-72 origin-top" style={{ borderColor: "#DDF0E8" }}>
+									<div className="flex items-center justify-between mb-3">
+										<button onClick={() => setViewDate((prev) => ({ ...prev, year: prev.year - 1 }))} className="p-1.5 rounded-lg text-[#5A8A8A] hover:bg-[#F0F7F4] font-bold text-sm"><ChevronLeft size={16} /></button>
+										<span className="font-black text-[#0F2E35] text-sm">{viewDate.year}</span>
+										<button onClick={() => setViewDate((prev) => ({ ...prev, year: prev.year + 1 }))} className="p-1.5 rounded-lg text-[#5A8A8A] hover:bg-[#F0F7F4] font-bold text-sm"><ChevronRight size={16} /></button>
+									</div>
+									<div className="grid grid-cols-3 gap-1.5">
+										{monthNames.map((name, idx) => (
+											<button
+												key={idx}
+												onClick={() => {
+													setViewDate((prev) => ({ ...prev, month: idx + 1 }));
+													setShowMonthPicker(false);
+												}}
+												className={`py-2 rounded-xl text-xs font-black uppercase tracking-tight transition-all ${
+													viewDate.month === idx + 1
+														? "bg-[#2C6975] text-white shadow-md shadow-[#2C6975]/30"
+														: "text-[#5A8A8A] hover:bg-[#F0F7F4]"
+												}`}>
+												{name.substring(0, 3)}
+											</button>
+										))}
+									</div>
+								</div>
+							)}
+						</div>
+						<button onClick={() => moveMonth(1)} className="p-2 rounded-xl text-[#5A8A8A] hover:bg-[#E6F2EE] transition-colors"><ChevronRight size={18} /></button>
+					</div>
+					
+					<div className="flex items-center bg-[rgba(104,178,160,.1)] border border-[rgba(104,178,160,.2)] px-5 py-2.5 rounded-xl gap-2 text-[#2C6975]">
+						<span className="text-[10px] font-black tracking-widest uppercase">Můj fond</span>
+						<span className="text-sm font-extrabold">{myTotalHours.toFixed(1)} h</span>
+					</div>
+				</div>
+			</OverlapPanel>
+
+			<div className="flex-1 px-6 md:px-24 md:pb-11 flex flex-col pt-2 min-h-0 relative z-10 w-full max-w-[1200px] mx-auto">
+				{loading ? (
+					<div className="text-center py-20 font-black tracking-widest uppercase text-[#9ABABA] text-[10px] animate-pulse">
+						Načítám směny...
+					</div>
+				) : (
+					<div className="space-y-6">
+						{/* NADCHÁZEJÍCÍ SMĚNY */}
+						{upcomingDays.length > 0 ? (
+							upcomingDays.map((dg) => renderDayGroup(dg, false))
+						) : (
+							<div className="text-center py-10 font-bold uppercase tracking-widest text-[#9ABABA] text-[10px] a-up">
+								Žádné nadcházející směny.
+							</div>
+						)}
+
+						{/* PROBĚHLÉ SMĚNY */}
+						{pastDays.length > 0 && (
+							<div className="opacity-70 grayscale-[0.2]">
+								<div className="flex items-center gap-3 pt-6 mb-6">
+									<div className="h-px flex-1 bg-[#DDF0E8]" />
+									<span className="text-[10px] font-black uppercase text-[#9ABABA] tracking-widest whitespace-nowrap">
+										Proběhlé směny
+									</span>
+									<div className="h-px flex-1 bg-[#DDF0E8]" />
+								</div>
+								{pastDays.map((dg) => renderDayGroup(dg, true))}
+							</div>
+						)}
 					</div>
 				)}
 			</div>
-
-			{loading ? (
-				<div className="text-center py-16 text-slate-400 text-sm">Načítám směny...</div>
-			) : (
-				<div className="space-y-6">
-					{/* NADCHÁZEJÍCÍ SMĚNY */}
-					{upcomingDays.length > 0 ? (
-						upcomingDays.map((dg) => renderDayGroup(dg, false))
-					) : (
-						<div className="text-center py-10 text-slate-400 text-sm">
-							Žádné nadcházející směny.
-						</div>
-					)}
-
-					{/* PROBĚHLÉ SMĚNY */}
-					{pastDays.length > 0 && (
-						<>
-							<div className="flex items-center gap-3 pt-4">
-								<div className="h-px flex-1 bg-slate-200" />
-								<span className="text-[10px] font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">
-									Proběhlé směny
-								</span>
-								<div className="h-px flex-1 bg-slate-200" />
-							</div>
-							{pastDays.map((dg) => renderDayGroup(dg, true))}
-						</>
-					)}
-				</div>
-			)}
-		</div>
+		</PageContainer>
 	);
 }

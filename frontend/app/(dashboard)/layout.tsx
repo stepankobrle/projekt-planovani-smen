@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Menu } from "lucide-react";
 import Sidebar from "@/app/components/Sidebar";
-import Header from "@/app/components/Header";
 import { UserRole } from "@/config/menu";
 import ProtectedRoute, { useAuth } from "@/app/components/ProtectedRoute";
 
@@ -34,13 +34,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 			/>
 
 			<div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-				<Header
-					userRole={userRole}
-					onMobileToggle={() => setIsMobileOpen((prev) => !prev)}
-				/>
+				{/* Mobilní hamburger — viditelný jen na malých obrazovkách */}
+				<div className="lg:hidden flex items-center px-4 h-12 bg-brand-primary shrink-0">
+					<button
+						onClick={() => setIsMobileOpen(true)}
+						className="p-1.5 text-slate-400 hover:text-white transition-colors">
+						<Menu size={20} />
+					</button>
+				</div>
 
-				<main className="flex-1 overflow-y-auto p-4 md:p-6 mb-3 mr-3 bg-brand-surface border-6 border-brand-primary rounded-2xl">
-					<div className="mx-auto max-w-7xl h-full">{children}</div>
+				<main className="flex-1 overflow-y-auto bg-brand-surface">
+					<div className="h-full">{children}</div>
 				</main>
 			</div>
 		</div>

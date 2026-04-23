@@ -12,8 +12,10 @@ import {
 	Info,
 } from "lucide-react";
 import ProtectedRoute, { useAuth } from "@/app/components/ProtectedRoute";
+import { PageContainer, HeroHeader, OverlapPanel, TableCard } from "@/app/components/AdminLayout";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import "../dashboard/dashboard.css";
 
 interface ShiftType {
 	id: number;
@@ -37,7 +39,7 @@ export default function ShiftTypesPage() {
 		name: "",
 		startTime: "",
 		endTime: "",
-		colorCode: "#3b82f6",
+		colorCode: "#2C6975",
 	});
 
 	const isAdmin = role === "ADMIN";
@@ -54,7 +56,7 @@ export default function ShiftTypesPage() {
 
 	useEffect(() => {
 		if (!isAdmin) {
-			setTimeout(() => router.push("/dashboard"), 3000);
+			setTimeout(() => router.push("/admin/dashboard"), 3000);
 		}
 		fetchTypes();
 	}, [isAdmin, fetchTypes, router]);
@@ -74,7 +76,7 @@ export default function ShiftTypesPage() {
 				name: "",
 				startTime: "",
 				endTime: "",
-				colorCode: "#3b82f6",
+				colorCode: "#2C6975",
 			});
 		}
 		setIsModalOpen(true);
@@ -116,228 +118,144 @@ export default function ShiftTypesPage() {
 		}
 	};
 
-	if (!isAdmin)
-		return (
-			<div className="flex flex-col items-center justify-center h-screen text-center">
-				<ShieldAlert className="text-red-500 w-16 h-16 mb-4" />
-				<h1 className="text-2xl font-bold">
-					Přístup povolen pouze pro administrátory
-				</h1>
+	if (!isAdmin) return (
+		<div className="flex flex-col items-center justify-center min-h-full px-4 text-center bg-[#F0F7F4]">
+			<div className="bg-red-100 p-6 rounded-full mb-6">
+				<ShieldAlert className="text-red-600 w-16 h-16" />
 			</div>
-		);
+			<h1 className="text-3xl font-bold text-slate-900 mb-2">Přístup odepřen</h1>
+		</div>
+	);
 
 	return (
 		<ProtectedRoute>
-			<div className="space-y-6 animate-in fade-in duration-500">
-				{/* HLAVIČKA */}
-				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-					<div>
-						<h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-							Typy směn
-						</h1>
-						<p className="text-slate-500 text-sm mt-1">
-							Definujte šablony směn pro váš tým.
-						</p>
-					</div>
-					<button
-						onClick={() => handleOpenModal()}
-						className="flex items-center justify-center gap-2 bg-brand-secondary hover:bg-brand-secondary-hover text-brand-text-on-primary px-5 py-2.5 rounded-xl font-medium shadow-lg transition-all active:scale-95">
-						<Plus size={18} /> Nový typ směny
-					</button>
-				</div>
+			<PageContainer>
+				
+				<HeroHeader
+					subtitle="Šablony a časy"
+					title="Typy směn"
+					action={
+						<button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-black/10 active:scale-95" style={{ background: "#F59E0B", color: "#fff" }}>
+							<Plus size={18} /> Nový typ směny
+						</button>
+					}
+				/>
 
-				{/* TABULKA */}
-				<div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
-					<table className="w-full min-w-[560px] text-left border-collapse">
-						<thead>
-							<tr className="bg-slate-50/50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-								<th className="px-6 py-4 font-semibold">Název</th>
-								<th className="px-6 py-4 font-semibold">Čas</th>
-								<th className="px-6 py-4 font-semibold">Barva</th>
-								<th className="px-6 py-4 font-semibold text-right">Akce</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-slate-100">
-							{types.map((type) => (
-								<tr key={type.id} className="hover:bg-slate-50/50 transition-colors">
-									<td className="px-6 py-4">
-										<span className="font-semibold text-slate-900 text-sm">
-											{type.name}
-										</span>
-									</td>
-									<td className="px-6 py-4">
-										<div className="flex items-center gap-1.5 text-sm text-slate-600">
-											<Clock size={14} className="text-slate-400" />
-											{type.startTime
-												? `${type.startTime} – ${type.endTime}`
-												: <span className="text-slate-400 italic">Flexibilní</span>}
-										</div>
-									</td>
-									<td className="px-6 py-4">
-										<div className="flex items-center gap-2">
-											<div
-												className="w-5 h-5 rounded-full border border-slate-200"
-												style={{ backgroundColor: type.colorCode }}
-											/>
-											<span className="font-mono text-xs text-slate-400 uppercase">
-												{type.colorCode}
-											</span>
-										</div>
-									</td>
-									<td className="px-6 py-4 text-right">
-										<div className="flex items-center justify-end gap-1">
-											<button
-												onClick={() => handleOpenModal(type)}
-												className="p-2 text-slate-400 hover:text-brand-secondary hover:bg-brand-secondary/10 rounded-lg transition-all"
-												title="Upravit">
-												<Edit2 size={16} />
-											</button>
-											<button
-												onClick={() => handleDelete(type.id)}
-												className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-												title="Smazat">
-												<Trash2 size={16} />
-											</button>
-										</div>
-									</td>
-								</tr>
-							))}
-							{types.length === 0 && (
-								<tr>
-									<td
-										colSpan={4}
-										className="px-6 py-12 text-center text-slate-400 text-sm">
-										Zatím nebyly vytvořeny žádné typy směn.
-									</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
-				</div>
+				<TableCard delay="100ms">
+					<thead style={{ position: "sticky", top: 0, zIndex: 5, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(10px)" }}>
+						<tr style={{ borderBottom: "2px solid #DDF0E8" }}>
+							<th className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase" style={{ color: "#9ABABA" }}>Název směny</th>
+							<th className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase" style={{ color: "#9ABABA" }}>Trvání</th>
+							<th className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase" style={{ color: "#9ABABA" }}>Barevný kód</th>
+							<th className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase text-right" style={{ color: "#9ABABA" }}>Akce</th>
+						</tr>
+					</thead>
+					<tbody>
+									{types.map((type, index) => (
+										<tr key={type.id} className="a-fade border-b border-[#DDF0E8] last:border-0 transition-colors hover:bg-[#E6F2EE]" style={{ "--d": `${index * 30}ms` } as React.CSSProperties}>
+											<td className="px-4 py-4">
+												<span className="font-bold text-[13px]" style={{ color: "#0F2E35" }}>
+													{type.name}
+												</span>
+											</td>
+											<td className="px-4 py-4">
+												<div className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "#5A8A8A" }}>
+													<Clock size={12} className="text-[#68B2A0]" />
+													{type.startTime ? `${type.startTime} – ${type.endTime}` : (
+														<span className="text-[10px] font-bold px-2 py-0.5 rounded border" style={{ background: "#F0F7F4", color: "#2C6975", borderColor: "#DDF0E8", textTransform: "uppercase" }}>
+															Flexibilní
+														</span>
+													)}
+												</div>
+											</td>
+											<td className="px-4 py-4">
+												<div className="flex items-center gap-2">
+													<div className="w-4 h-4 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: type.colorCode }} />
+													<span className="font-mono text-[11px] uppercase font-bold" style={{ color: "#9ABABA" }}>
+														{type.colorCode}
+													</span>
+												</div>
+											</td>
+											<td className="px-4 py-4 text-right">
+												<div className="flex justify-end gap-2">
+													<button onClick={() => handleOpenModal(type)} className="btn-no" style={{ padding: "6px", borderRadius: "8px", borderColor: "transparent", color: "#68B2A0" }}>
+														<Edit2 size={16} />
+													</button>
+													<button onClick={() => handleDelete(type.id)} className="btn-no" style={{ padding: "6px", borderRadius: "8px", borderColor: "transparent", color: "#C85A30" }}>
+														<Trash2 size={16} />
+													</button>
+												</div>
+											</td>
+										</tr>
+									))}
+									{types.length === 0 && (
+										<tr>
+											<td colSpan={4} className="px-4 py-16 text-center text-sm" style={{ color: "#9ABABA" }}>Zatím nebyly vytvořeny žádné typy směn.</td>
+										</tr>
+									)}
+								</tbody>
+					</TableCard>
 
-				{/* MODÁL */}
+				{/* MODÁL PRO PŘIDÁNÍ / EDITACI */}
 				{isModalOpen && (
-					<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-						<div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative">
-							<button
-								onClick={() => setIsModalOpen(false)}
-								className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
-								<X size={24} />
-							</button>
-
-							<div className="flex items-center gap-3 mb-6">
-								<div className="p-3 bg-brand-secondary/10 text-brand-secondary rounded-2xl">
-									<Clock size={24} />
+					<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2E35]/40 backdrop-blur-sm animate-in fade-in duration-200">
+						<div className="bg-white rounded-[24px] shadow-2xl w-full max-w-md p-8 relative border border-[#DDF0E8]">
+							<button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-[#9ABABA] hover:text-[#0F2E35] transition-colors"><X size={24} /></button>
+							<div className="flex items-center gap-4 mb-8">
+								<div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "#E6F2EE", color: "#2C6975" }}>
+									<Clock size={22} />
 								</div>
 								<div>
-									<h2 className="text-2xl font-bold text-slate-900">
-										{editingId ? "Upravit typ směny" : "Nový typ směny"}
-									</h2>
-									<p className="text-slate-500 text-sm">
-										{editingId
-											? "Upravte parametry směny."
-											: "Zadejte parametry nové směny."}
-									</p>
+									<h2 className="text-xl font-bold" style={{ color: "#0F2E35" }}>{editingId ? "Upravit směnu" : "Nový typ směny"}</h2>
+									<p className="text-xs mt-1" style={{ color: "#5A8A8A" }}>{editingId ? "Upravte parametry směny." : "Zadejte parametry pro novou směnu."}</p>
 								</div>
 							</div>
 
-							{error && (
-								<div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 font-medium">
-									⚠️ {error}
-								</div>
-							)}
+							{error && <div className="p-3 rounded-xl text-xs font-bold mb-4" style={{ background: "rgba(200,90,48,.1)", color: "#C85A30" }}>⚠️ {error}</div>}
 
 							<form onSubmit={handleSubmit} className="space-y-4">
 								<div>
-									<label className="text-xs font-bold uppercase text-slate-500 mb-1 block">
-										Název směny
-									</label>
-									<input
-										required
-										value={formData.name}
-										onChange={(e) =>
-											setFormData({ ...formData, name: e.target.value })
-										}
-										className="w-full p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-brand-secondary transition-all"
-										placeholder="např. Ranní 8h"
-									/>
+									<label className="text-[10px] font-bold uppercase tracking-[0.1em] block mb-1.5" style={{ color: "#9ABABA" }}>Název směny</label>
+									<input required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full p-3 rounded-xl text-sm font-semibold border outline-none transition-all outline-none" style={{ borderColor: "#DDF0E8", color: "#0F2E35" }} placeholder="např. Ranní 8h" />
 								</div>
 
 								<div className="grid grid-cols-2 gap-4">
 									<div>
-										<label className="text-xs font-bold uppercase text-slate-500 mb-1 block">
-											Začátek
-										</label>
-										<input
-											type="time"
-											value={formData.startTime}
-											onChange={(e) =>
-												setFormData({ ...formData, startTime: e.target.value })
-											}
-											className="w-full p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-brand-secondary transition-all"
-										/>
+										<label className="text-[10px] font-bold uppercase tracking-[0.1em] block mb-1.5" style={{ color: "#9ABABA" }}>Začátek</label>
+										<input type="time" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} className="w-full p-3 rounded-xl text-sm font-semibold border outline-none transition-all outline-none" style={{ borderColor: "#DDF0E8", color: "#0F2E35" }} />
 									</div>
 									<div>
-										<label className="text-xs font-bold uppercase text-slate-500 mb-1 block">
-											Konec
-										</label>
-										<input
-											type="time"
-											value={formData.endTime}
-											onChange={(e) =>
-												setFormData({ ...formData, endTime: e.target.value })
-											}
-											className="w-full p-3 border border-slate-200 rounded-xl font-semibold outline-none focus:border-brand-secondary transition-all"
-										/>
+										<label className="text-[10px] font-bold uppercase tracking-[0.1em] block mb-1.5" style={{ color: "#9ABABA" }}>Konec</label>
+										<input type="time" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} className="w-full p-3 rounded-xl text-sm font-semibold border outline-none transition-all outline-none" style={{ borderColor: "#DDF0E8", color: "#0F2E35" }} />
 									</div>
 								</div>
 
-								<div className="p-3 bg-brand-secondary/10 rounded-xl flex gap-2 text-brand-secondary text-xs">
+								<div className="p-3 rounded-xl flex items-start gap-2 text-xs font-semibold" style={{ background: "#F0F7F4", color: "#2C6975" }}>
 									<Info size={16} className="shrink-0 mt-0.5" />
-									<span>
-										Ponechte časy prázdné, pokud jde o flexibilní směnu bez
-										pevného začátku.
-									</span>
+									<span>Ponechte časy prázdné, pokud se jedná o flexibilní směnu bez pevného začátku.</span>
 								</div>
 
 								<div>
-									<label className="text-xs font-bold uppercase text-slate-500 mb-1 block text-center">
-										Barva směny
-									</label>
+									<label className="text-[10px] font-bold uppercase tracking-[0.1em] block mb-2 text-center" style={{ color: "#9ABABA" }}>Barva směny</label>
 									<div className="flex justify-center items-center gap-4">
-										<input
-											type="color"
-											value={formData.colorCode}
-											onChange={(e) =>
-												setFormData({ ...formData, colorCode: e.target.value })
-											}
-											className="w-20 h-20 p-1 bg-white border border-slate-200 rounded-full cursor-pointer overflow-hidden shadow-sm"
-										/>
-										<div className="font-mono text-sm text-slate-500 uppercase">
-											{formData.colorCode}
-										</div>
+										<input type="color" value={formData.colorCode} onChange={(e) => setFormData({ ...formData, colorCode: e.target.value })} className="w-16 h-16 p-1 bg-white border rounded-full cursor-pointer overflow-hidden shadow-sm outline-none" style={{ borderColor: "#DDF0E8" }} />
+										<div className="font-mono text-sm uppercase font-bold" style={{ color: "#5A8A8A" }}>{formData.colorCode}</div>
 									</div>
 								</div>
 
-								<div className="flex gap-3 pt-2">
-									<button
-										type="button"
-										onClick={() => setIsModalOpen(false)}
-										className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors">
+								<div className="flex gap-3 pt-6 mt-2">
+									<button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-[#F0F7F4] text-[#5A8A8A] hover:bg-[#E6F2EE] transition-colors">
 										Zrušit
 									</button>
-									<button
-										type="submit"
-										disabled={loading}
-										className="flex-1 py-3 bg-brand-secondary text-brand-text-on-primary font-bold rounded-xl shadow-lg hover:bg-brand-secondary-hover disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-all">
-										{loading ? "Ukládám..." : "Uložit typ směny"}
+									<button type="submit" disabled={loading} className="flex-1 py-3.5 rounded-xl font-bold text-sm text-white shadow-lg shadow-black/10 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50" style={{ background: "linear-gradient(90deg, #2C6975, #68B2A0)" }}>
+										{loading ? "Ukládám..." : "Uložit směnu"}
 									</button>
 								</div>
 							</form>
 						</div>
 					</div>
 				)}
-			</div>
+			</PageContainer>
 		</ProtectedRoute>
 	);
 }
