@@ -1,3 +1,7 @@
+# Claude
+CLAUDE.md
+.claude/
+
 # Claude skills
 .claude/skills/ui-ux-pro-max/scripts/__pycache__/
 .claude/skills/ui-ux-pro-max/*.pyc
